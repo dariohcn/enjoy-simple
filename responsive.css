@@ -1,0 +1,460 @@
+/* Layout, density and touch controls for enjoy. */
+:root{--sidebar-width:232px;--content-width:1680px;--gutter:clamp(20px,2.5vw,48px)}
+html{scroll-padding-top:90px}
+body{min-width:0;-webkit-text-size-adjust:100%}
+button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible{outline:3px solid #60aee6;outline-offset:3px}
+button{touch-action:manipulation}
+#sidebar{width:var(--sidebar-width);padding:30px 18px;overscroll-behavior:contain;scrollbar-width:thin}
+.brand{font-size:42px;flex-shrink:0}
+.workspace{margin:26px 12px 22px}
+#nav button{min-height:44px;font-size:13px;padding:10px 12px;gap:12px}
+.nav-icon{flex:0 0 20px}
+.shell{margin-left:var(--sidebar-width);min-width:0;display:flex;flex-direction:column;min-height:100dvh}
+.shell>header{position:sticky;top:0;z-index:15;min-height:72px;height:auto;padding:14px var(--gutter);gap:14px;flex-shrink:0}
+header>div{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.avatar{flex:0 0 40px;width:40px;height:40px;font-size:12px}
+main,main[data-page="clients"],main[data-page="vehicles"]{width:100%;max-width:var(--content-width);padding:34px var(--gutter) 48px;min-width:0;flex:1}
+footer{padding:20px var(--gutter);line-height:1.7;align-items:center}
+h1,.page-head h1,.records-heading h1,.reception-heading h1{font-size:clamp(28px,2.5vw,38px);line-height:1.15;letter-spacing:-1px}
+.page-head,.records-heading,.reception-heading{gap:24px;padding-bottom:24px;margin-bottom:26px}
+.page-head p,.records-heading p,.reception-heading p{line-height:1.7;font-size:13px;margin-top:10px}
+.btn{min-height:44px;font-size:12px;padding:11px 18px}
+.btn.small{min-height:36px}
+.btn:hover{box-shadow:0 3px 9px #063d7015}
+.text-button{min-height:32px;line-height:1.5}
+.card,.records-register,.reception-list,.unit-inspector,.stat{border-radius:6px}
+.card-head{min-height:68px;flex-wrap:wrap}
+.grid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+.grid>*,.stats>*,.service-grid>*,.approval-grid>*,.profile>*,.reception-layout>*,.agenda-layout>*{min-width:0}
+.stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.stat{padding:20px 22px}
+.stat-top{gap:12px;align-items:flex-start;line-height:1.5}
+.stat strong{font-size:clamp(29px,2.6vw,39px)}
+.stat small{font-size:11px;line-height:1.6}
+.welcome{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);min-height:250px}
+.welcome-copy{padding:32px}
+.welcome-copy h2{font-size:clamp(25px,2.4vw,34px)}
+.welcome-copy p{font-size:13px;line-height:1.8}
+.welcome-copy button{min-height:40px}
+.video-frame{min-height:250px}
+.row .grow{min-width:0;overflow-wrap:anywhere}
+.row{gap:14px}
+.row>.badge,.row>.text-button{flex-shrink:0}
+.service-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.service p,.approval p{line-height:1.8}
+.table-wrap{max-width:100%;overscroll-behavior-x:contain;scrollbar-width:thin}
+table{font-size:13px}
+td{font-size:13px}
+td,th{line-height:1.6}
+.records-table{min-width:720px}
+.records-table tbody td{padding:22px 20px}
+.records-tools{flex-wrap:wrap;gap:14px;padding:20px 22px}
+.records-search{min-width:180px;max-width:520px;min-height:44px}
+.records-search input{font-size:13px}
+.records-filter select{min-height:44px}
+.record-contact,.record-identity{overflow-wrap:anywhere}
+.record-actions button{min-height:40px;font-size:11px}
+.records-register-foot{flex-wrap:wrap}
+.reception-layout{grid-template-columns:minmax(0,1fr) 300px;gap:24px}
+.reception-labels,.reception-row{grid-template-columns:72px minmax(0,1.2fr) minmax(0,1fr) 104px;gap:16px;padding-inline:22px}
+.arrival-client,.arrival-service,.arrival-status{min-width:0;overflow-wrap:anywhere}
+.reception-heading .actions{flex-wrap:wrap;justify-content:flex-end}
+.week-strip{grid-template-columns:120px repeat(7,minmax(0,1fr))}
+.strip-day{min-width:0;min-height:92px}
+.strip-navigation button{min-width:32px;min-height:40px}
+.unit-inspector{position:sticky;top:98px}
+.unit-inspector-top>span{color:#d3e3ef;font-size:10px}
+.unit-inspector-top .text-button{color:#fff;font-size:12px}
+.unit-title p{color:#c7d9e8;font-size:12px}
+.unit-details dt{font-size:11px}
+.reception-labels{font-size:10px}
+.reception-list-head>span,.arrival-client>span{font-size:12px}
+.reception-foot,.arrival-status,.arrival-time small{font-size:11px}
+.strip-day>span{font-size:10px}
+.agenda-layout{grid-template-columns:minmax(0,1fr) 290px}
+.calendar-title{flex-wrap:wrap;gap:10px}
+.calendar-title h2{font-size:18px}
+.calendar .day{min-width:0}
+.calendar-card{min-width:0}
+.agenda-summary{flex-wrap:wrap;gap:16px 30px}
+.agenda-summary .agenda-summary-note{margin-left:auto}
+.segmented button{min-height:38px}
+.auth-layout{width:100%;max-width:1280px;grid-template-columns:minmax(0,1.15fr) minmax(360px,.9fr);gap:clamp(32px,5vw,90px);margin:24px auto 40px}
+.auth-intro{min-width:0}
+.auth-intro h1{font-size:clamp(36px,4vw,58px);letter-spacing:-1.8px}
+.auth-intro>p{max-width:460px;font-size:16px;line-height:1.8}
+.auth-video{border-radius:7px;margin-top:30px}
+.auth-features{gap:12px;flex-wrap:wrap;font-size:11px}
+.login-card{padding:clamp(26px,3vw,48px);border-radius:7px;box-shadow:0 12px 36px #263e5010}
+.login-card h2{font-size:clamp(25px,2.3vw,32px);line-height:1.25}
+.login-card>p,.register-link p{font-size:13px;line-height:1.7}
+.login-card label{font-size:13px;margin:20px 0}
+.login-card input{min-height:48px;font-size:16px}
+.login-card .btn{min-height:48px;font-size:13px}
+.register-link small{font-size:11px;line-height:1.7}
+.fields input,.fields select,.fields textarea{min-width:0;min-height:44px;font-size:14px}
+.fields label{min-width:0;font-size:12px;line-height:1.7}
+.fields .check input{min-height:auto}
+.fields textarea{min-height:100px;resize:vertical}
+dialog{max-height:calc(100dvh - 48px);max-width:660px;border-radius:8px;overscroll-behavior:contain}
+.dialog-head{position:sticky;top:0;z-index:2;gap:16px;padding:20px 26px}
+.dialog-head h2{line-height:1.4}
+.dialog-footer{position:sticky;bottom:0;z-index:2;flex-wrap:wrap;padding:16px 26px}
+.icon-button{min-width:40px;min-height:40px}
+.detail{overflow-wrap:anywhere}
+#toast{max-width:calc(100vw - 32px);overflow-wrap:anywhere;bottom:max(20px,env(safe-area-inset-bottom));line-height:1.6}
+.drawer-close,.nav-backdrop{display:none}
+
+
+
+
+
+
+
+
+/* The access form remains full-size on phones and portrait tablets. */
+
+
+
+/* enjoy interface — Tabler 1.6.1 components, institutional theme. */
+:root{--blue:#1264ac;--ink:#1f3347;--muted:#64788b;--bg:#edf1f5;--line:#dce4ec;--tblr-primary:#1264ac;--tblr-primary-rgb:18,100,172;--tblr-body-font-family:Manrope,Arial,sans-serif;--sidebar-width:240px;--gutter:32px}
+body{background:var(--bg);color:var(--ink);font-family:Manrope,Arial,sans-serif;font-size:14px;line-height:1.6}
+h1,h2,h3,h4{color:var(--ink);font-family:Manrope,Arial,sans-serif;font-weight:700}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.shell{min-height:100dvh}
+#sidebar{background:#fff;border-right:1px solid var(--line);padding:28px 16px 20px;color:var(--ink);box-shadow:none}
+.brand{font-family:Barlow,Arial,sans-serif;color:#145c99;font-size:44px;font-weight:700;letter-spacing:-2px;padding:0 16px}
+.brand span{color:#7c8c9a;font:600 8px Manrope,sans-serif;letter-spacing:1.7px;margin-top:7px}
+.workspace{margin:27px 4px 18px;padding:15px;border:1px solid #e0e7ee;background:#f4f7fa;border-radius:7px}
+.workspace strong{font-size:13px;line-height:1.6;color:#243b51;font-weight:700;margin-top:0;letter-spacing:0}
+.workspace span{font-size:11px;color:#697d8e;margin-top:4px;letter-spacing:0}
+.workspace span:before{width:6px;height:6px;background:#43a789}
+.nav-section{font-size:9px;letter-spacing:1.2px;font-weight:700;color:#8a9baa;padding:20px 15px 9px}
+#nav button{color:#596d80;font-size:13px;font-weight:500;min-height:45px;margin:3px 0;padding:11px 14px;gap:12px;border-radius:6px;background:transparent;box-shadow:none;text-align:left}
+#nav button:hover{color:#125f9f;background:#f3f7fb}
+#nav button.active{background:#e9f2fb;color:#125f9f;font-weight:700;box-shadow:none}
+#nav button.active:after{display:none}
+#nav .nav-icon{width:20px;height:20px;color:#8395a6}
+#nav button.active .nav-icon{color:#1264ac}
+#nav svg{width:20px;height:20px}
+.shell>header{background:#fff;min-height:74px;padding:16px var(--gutter);border-bottom:1px solid var(--line);box-shadow:none}
+header>div{font-size:12px;color:#7b8c9b}header strong{font-weight:600;color:#30485f}header span{color:#bdc8d1;margin:0 16px}
+.avatar{border:1px solid #d9e5ef;background:#eef4fa;color:#1264ac;font-weight:700;border-radius:50%;box-shadow:none}
+main,main[data-page="clients"],main[data-page="vehicles"]{padding:34px var(--gutter) 44px;background:var(--bg);max-width:1640px}
+.eyebrow{font-size:10px;color:#698398;letter-spacing:1.5px;font-weight:700}
+h1,.page-head h1,.records-heading h1,.reception-heading h1{font-size:30px;letter-spacing:-.8px;line-height:1.25;margin-top:7px}
+.page-head,.records-heading,.reception-heading{align-items:center;border:0;margin-bottom:24px;padding-bottom:0}
+.page-head p,.records-heading p,.reception-heading p{font-size:13px;color:#6b7f91;margin-top:8px}
+.btn{border-radius:6px;min-height:42px;padding:10px 17px;font-weight:600;font-size:12px;letter-spacing:0;line-height:1.5;box-shadow:0 2px 3px #193b5510;background:#1264ac;border:1px solid #1264ac;color:#fff}
+.btn:hover{background:#0e5492;border-color:#0e5492;color:#fff;box-shadow:0 3px 7px #125f9f18}
+.btn.secondary{background:#fff;border:1px solid #cfdae4;color:#365e80;box-shadow:none}
+.btn.secondary:hover{background:#f0f6fb;border-color:#a9c4d9;color:#125f9f}
+.btn:disabled{opacity:.65;cursor:wait}
+.text-button{color:#1264ac;font-size:12px}
+.card,.stat,.records-register,.reception-list,.calendar-card,.appointment-card,.unit-inspector{background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 2px 4px #1a36530a;overflow:hidden}
+.card-head{background:#fff;border-bottom:1px solid #e8edf2;padding:20px 23px;min-height:66px}
+.card-head h2{font-size:16px;letter-spacing:-.3px;margin:0}
+.card-body{padding:24px}
+.row{margin:0;--tblr-gutter-x:0;padding:18px 23px;flex-wrap:nowrap;border-color:#edf1f5}
+.row>*{width:auto;padding:0;margin-top:0;flex-shrink:0}
+.row .grow{flex:1;min-width:0}
+.row h3{font-size:13px;margin:0 0 5px}
+.row p{font-size:12px;margin:0;color:#708395}
+.initials{width:36px;height:36px;background:#edf3f9;color:#386487;border:1px solid #dce6ef;border-radius:50%;font-size:12px}
+.badge{font-size:10px;font-weight:600;line-height:1.5;letter-spacing:0;background:#eaf2f9;color:#36688f;padding:4px 8px;border-radius:4px}
+.stats{gap:18px;margin-bottom:26px}
+.stat{padding:22px 23px;position:relative;min-height:140px}
+.stat-top{font-size:12px;color:#6d8193;align-items:center;font-weight:500}
+.stat-icon{width:33px;height:33px;border-radius:7px;background:#edf4fb;display:grid;place-items:center;color:#2875b5}
+.stat-icon svg{width:20px;height:20px}
+.stat strong{font:700 33px/1.2 Barlow,sans-serif;color:#203a50;display:block;margin:7px 0 6px}
+.stat small{font-size:11px;color:#8796a3}
+.welcome{border:1px solid #cfdfe9;background:#e4eef7;grid-template-columns:minmax(0,1fr) minmax(200px,.65fr);min-height:190px;margin-bottom:25px;border-radius:8px;box-shadow:none;overflow:hidden}
+.welcome-copy{padding:28px 30px}
+.welcome-copy h2{font-size:24px;color:#214f75;letter-spacing:-.6px;margin:8px 0 10px}
+.welcome-copy .eyebrow{color:#5e86a5}.welcome-copy p{color:#5d7b92;font-size:13px;line-height:1.8;max-width:470px;margin:0}
+.welcome-copy button{font-size:12px;background:#fff;border:1px solid #c7d9e6;border-radius:5px;color:#1264ac;padding:9px 13px;margin-top:16px;min-height:38px}
+.video-frame{min-height:190px;background:#143b5d}.video-frame video{height:100%;width:100%;object-fit:cover}
+.demo{background:none;border:0;padding:0;margin:-14px 0 24px;font-size:11px;color:#7a8e9e}
+.records-heading h1>span{font-size:12px;background:#e0eaf4;color:#4a6d89;border:0;padding:5px 9px;border-radius:5px}
+.records-tools{background:#fff;padding:18px 22px;gap:16px;border-bottom:1px solid #e5ebf1}
+.records-search{background:#f8fafc;border:1px solid #dce4ec;border-radius:5px;padding:10px 12px;max-width:460px}
+.records-search input{font-size:13px;color:#2e485f}
+.records-filter select{background:#fff;border-radius:5px;color:#46647c;font-size:12px;border:1px solid #d6e0e9}
+.records-result{font-size:11px;color:#788fa1}
+.records-table thead th,table thead th{background:#f4f7fa;color:#71869a;font-size:10px;font-weight:700;letter-spacing:.7px;border:0;border-bottom:1px solid #e2e9ef;padding:13px 20px}
+.records-table tbody td,td{padding:21px 20px;color:#5d7386;font-size:13px;border-bottom:1px solid #edf1f5}
+.records-table .number-cell{color:#a2afba;font-size:11px}
+.record-identity>button{font-size:14px;color:#28465f;font-weight:700}
+.record-contact>span{font-size:12px;color:#516d84}.record-contact .secondary-line,.records-table small{font-size:11px;color:#8b9daa}
+.records-table .units-count,.odometer{font:600 21px Barlow,sans-serif;color:#35617f}
+.record-actions button{color:#1668a7;font-size:12px}
+.records-register-foot{background:#fafcfd;font-size:10px;color:#8a9eae;border-color:#e5ebf0;padding:15px 22px}
+.reception-heading{margin-bottom:25px}.reception-heading .actions{gap:14px}
+.segmented{background:#e1e8ef;border:1px solid #d6e1ea;border-radius:6px;padding:3px}
+.segmented button{font-size:12px;min-height:34px;padding:7px 14px;color:#6c8194;background:transparent;border-radius:4px}
+.segmented button.active{background:#fff;color:#1264ac;box-shadow:0 1px 3px #294b6b15}
+.week-strip{border:1px solid #d8e2ec;background:#fff;border-radius:8px;overflow:hidden;margin-bottom:24px}
+.strip-day{border-color:#edf1f5;min-height:92px;padding:14px 5px;color:#526f87;background:#fff}
+.strip-day strong{font:600 28px Barlow,sans-serif;color:#385b76}
+.strip-day>span{font-size:10px;color:#8c9caa;letter-spacing:.7px}
+.strip-day small{font-size:10px;color:#8a9caa}.strip-day.active{background:#1264ac;color:#fff;border-color:#1264ac}
+.strip-day.active strong,.strip-day.active>span,.strip-day.active small{color:#fff}
+.strip-day.today:not(.active){background:#edf5fc}
+.reception-list-head{background:#fff;padding:20px 23px;border-bottom:1px solid #e3ebf2}
+.reception-list-head h2{font-size:17px;letter-spacing:-.3px;color:#294860}.reception-list-head>span{font-size:11px;color:#8094a4}
+.reception-labels{padding:12px 23px;background:#f6f9fb;color:#91a2af;font-size:9px;letter-spacing:.7px;border-bottom:1px solid #e8eef3}
+.reception-row{background:#fff;color:#49657b;padding:23px;min-height:116px;border-color:#eaf0f4;box-shadow:none}
+.reception-row:hover{background:#f8fbfe}.reception-row.selected{background:#f1f7fc;box-shadow:inset 3px 0 #2878b7}
+.arrival-time strong{font:600 28px Barlow,sans-serif;color:#2e5878}.arrival-time small{font-size:10px;color:#8fa0ae}
+.arrival-client strong{font-size:14px;color:#294a65}.arrival-client>span{font-size:12px;color:#7890a3}.arrival-service{font-size:12px;color:#637e92;line-height:1.6}.arrival-status{font-size:11px;line-height:1.5}
+.reception-foot{padding:16px 23px;background:#fcfdfe;color:#8b9eac;font-size:10px}
+.unit-inspector-top{background:#133d60;padding:19px 24px;color:#d8e7f3}.unit-inspector-top>span{color:#bdd2e3;font-size:9px;letter-spacing:1.3px}
+.unit-title{background:#18476d;color:#fff;padding:27px 25px}.unit-title h2{color:#fff;font-family:Barlow,sans-serif;font-weight:600;font-size:33px;line-height:1.05;letter-spacing:-.5px;margin:16px 0 14px}.unit-title p{color:#b4cbdc;font-size:12px}.unit-title .plate{background:#ffffff12;border-color:#ffffff29;color:#c7deef}
+.unit-details{padding:5px 25px 12px}.unit-details>div{border-color:#edf1f5;padding:16px 0}.unit-details dt{font-size:11px;color:#8aa0b1}.unit-details dd{font-size:13px;color:#395f7d}.unit-actions{padding:0 25px 25px;gap:10px}
+.calendar-card .card-head{background:#fff}.calendar-title h2{font-size:18px;color:#2d526f}.weekday{background:#f4f8fb;font-size:10px;color:#7892a5}.calendar .day{background:#fff;border-color:#e9eff4}.calendar .day.out{background:#f8fafc}.calendar .day.selected-day{background:#eff6fd;box-shadow:inset 0 0 0 1px #76abd1}.day-number{font-size:12px;color:#4d6e88}.calendar-key{background:#fbfdfe;font-size:10px;color:#718b9e}
+.fields input,.fields select,.fields textarea{border:1px solid #cdd9e4;border-radius:5px;background:#fff;color:#28465f;font-size:14px;box-shadow:none;min-height:44px;padding:10px 12px}
+.fields label{font-size:12px;color:#506b80;font-weight:600}.fields input:focus,.fields select:focus,.login-card input:focus{border-color:#69a0cc;outline:0;box-shadow:0 0 0 3px #1264ac18}
+.dialog-head{background:#fff;border-bottom:1px solid #e4ebf1}.dialog-head h2{font-size:21px}.dialog-footer{background:#f8fafc;border-top:1px solid #e3ebf1}.fields{padding:26px;gap:22px}
+footer{background:transparent;color:#8b9eae;border-top:1px solid #dce5ed;padding:20px var(--gutter);font-size:10px}footer a{color:#6a879d;text-decoration:none}footer a:hover{color:#1264ac}
+.drawer-close{color:#41667f;background:#edf3f8}.nav-backdrop{border:0}
+/* Access: one integrated surface, with a fluid form and a real driving film. */
+.logged-out{background:#e9eef3}
+.logged-out .shell{background:#e9eef3}
+.logged-out .shell>header{display:none}
+.logged-out main{display:grid;place-items:center;width:100%;max-width:none;padding:56px 36px 32px;background:#e9eef3}
+.logged-out footer{border:0;max-width:1160px;width:100%;margin:0 auto;padding:0 0 26px;justify-content:space-between;font-size:11px}
+.auth-layout{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,1fr);align-items:stretch;gap:0;width:100%;max-width:1160px;margin:0 auto;background:#fff;border:1px solid #d5e0e9;border-radius:14px;overflow:hidden;box-shadow:0 15px 50px #193a5610}
+.auth-intro{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;padding:40px;min-height:640px;background:#123650;color:#fff;grid-row:auto}
+.auth-video{position:absolute;z-index:-2;inset:0;width:100%;height:100%;margin:0;aspect-ratio:auto;border-radius:0}
+.auth-video video{width:100%;height:100%;object-fit:cover;object-position:center;filter:brightness(.65) saturate(.65)}
+.auth-intro:after{content:'';position:absolute;z-index:-1;inset:0;background:linear-gradient(180deg,#0b27454d 0%,#102d4420 30%,#092940eb 100%)}
+.auth-brand{display:block;width:fit-content;color:#fff;text-decoration:none;font:600 52px/1 Barlow,sans-serif;letter-spacing:-2px}
+.auth-brand:hover{color:#fff}.auth-brand span{display:block;font:600 8px/1.5 Manrope,sans-serif;letter-spacing:2px;color:#c0d5e5;margin-top:12px}
+.auth-message{padding-top:70px}.auth-intro .eyebrow{color:#a6c6de;font-size:9px;letter-spacing:1.7px}
+.auth-intro h1{color:#fff;font:500 clamp(36px,3.5vw,49px)/1.12 Manrope,sans-serif;letter-spacing:-1.8px;margin:16px 0 20px}
+.auth-intro p{color:#cfdee9;font-size:15px;line-height:1.9;margin:0}
+.auth-feature-line{display:flex;gap:0;margin-top:29px;border-top:1px solid #ffffff30;padding-top:20px;color:#abc5d8;font-size:10px}
+.auth-feature-line span+span:before{content:'·';padding:0 13px;color:#8fadc2}
+.login-card.card{border:0;border-radius:0;padding:54px 50px;display:flex;flex-direction:column;justify-content:center;background:#fff;box-shadow:none;grid-row:auto;overflow:visible}
+.auth-form-heading{display:flex;align-items:center;gap:10px;color:#8095a6;font-size:9px;font-weight:700;letter-spacing:1.3px;margin-bottom:22px}
+.auth-access-mark{background:#ecf3f9;color:#3978a9;width:33px;height:33px;display:grid;place-items:center;border-radius:7px}.auth-access-mark svg{width:19px;height:19px}
+.login-card h2{font-size:27px;color:#223d52;line-height:1.3;letter-spacing:-.7px;margin:0 0 13px}
+.login-card>p{font-size:13px;line-height:1.8;color:#8a9aa7;margin:0;max-width:310px}
+.login-card form{margin-top:31px}.login-card label{font-size:12px;font-weight:600;color:#567085;display:block;margin:0 0 22px}
+.login-card input.form-control{width:100%;min-height:48px;height:48px;margin-top:8px;padding:12px 14px;border:1px solid #d6e0e8;border-radius:5px;background:#fbfcfe;font-size:16px;box-shadow:none}
+.login-card input:focus{background:#fff;border-color:#78a6c9;box-shadow:0 0 0 3px #1264ac12}
+.login-card form .btn{display:flex;align-items:center;justify-content:space-between;min-height:48px;font-size:13px;padding:12px 18px;margin-top:6px;box-shadow:none;width:100%}
+.login-card form .btn span{font-size:20px;font-weight:400}
+#login-error{font-size:12px;line-height:1.6;margin:12px 0 0;color:#c44242}
+#login-error:empty{display:none}
+.register-link{border-top:1px solid #e4ebf1;padding-top:24px;margin-top:28px}
+.register-link p{font-size:12px;color:#8498a7;margin:0 0 11px}.register-link .btn{margin:0;min-height:43px;width:100%;font-size:12px;border-color:#d5e0e8;color:#3e6b8d;background:#fff}
+.register-link small{color:#a1afba;font-size:10px;line-height:1.7;margin-top:13px;display:block}
+
+
+
+
+
+
+
+/* Readable secondary text and stable compact date markers. */
+.login-card>p,.register-link p{color:#677f91}.register-link small{color:#738999}.login-card label{color:#4e697e}.auth-form-heading{color:#617f95}
+.date-tile{width:44px;min-width:44px;flex:0 0 44px;border-radius:6px;background:#edf4fa;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 5px}.date-tile strong{font:600 21px/1.1 Barlow,sans-serif}.date-tile small{font-size:10px;margin-top:4px}
+
+
+
+/* Unified fluid layout. All breakpoints are defined here, after the theme. */
+:root{--sidebar-width:240px;--gutter:clamp(16px,2.5vw,40px)}
+html{width:100%;text-size-adjust:100%;-webkit-text-size-adjust:100%;scrollbar-gutter:auto}
+body{width:100%;min-width:0;margin:0;overflow-wrap:break-word}
+*,*:before,*:after{box-sizing:border-box}
+img,video,svg{max-width:100%}
+button,input,select,textarea{max-width:100%}
+button,a{touch-action:manipulation}
+#sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar-width);height:100dvh;overflow-y:auto;overscroll-behavior:contain;display:flex;visibility:visible;transform:none;z-index:50;padding:28px 16px}
+.shell{width:calc(100% - var(--sidebar-width));margin-left:var(--sidebar-width);min-width:0;min-height:100dvh;display:flex;flex-direction:column}
+.shell>header{position:sticky;top:0;min-height:72px;height:auto;flex-shrink:0;padding:14px var(--gutter);gap:14px;z-index:20}
+header>div{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+header strong{font-size:13px}header span{margin-inline:12px}
+.avatar{margin-left:auto;flex:0 0 40px;width:40px;height:40px}
+#menu{display:none;flex:0 0 44px;width:44px;min-height:44px;padding:0;font-size:24px;color:#17649f;background:none;border-radius:5px}
+.drawer-close,.nav-backdrop{display:none}
+main,main[data-page="clients"],main[data-page="vehicles"]{container:workspace / inline-size;min-width:0;min-height:0;width:100%;max-width:1680px;margin:0 auto;padding:32px var(--gutter) 40px;flex:1}
+footer{width:100%;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;padding:20px var(--gutter);font-size:12px;line-height:1.6}
+.page-head,.records-heading,.reception-heading{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;margin-bottom:24px;padding:0;min-width:0}
+.page-head>div,.records-heading>div,.reception-heading>div{min-width:0}
+.page-head h1,.records-heading h1,.reception-heading h1{font-size:clamp(26px,2.5vw,34px);line-height:1.25;overflow-wrap:anywhere}
+.page-head p,.records-heading p,.reception-heading p{font-size:14px;line-height:1.7}
+.eyebrow,.nav-section{font-size:11px;letter-spacing:1px}
+#nav button{font-size:14px;min-height:45px}
+.btn,.btn.small{min-height:44px;font-size:14px;padding:10px 16px;white-space:normal}
+.text-button{font-size:13px;min-height:40px;white-space:normal}
+.actions{gap:10px;min-width:0;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:18px}
+.stat{min-width:0;min-height:136px;padding:22px}
+.stat-top{font-size:13px;gap:12px}.stat small{font-size:12px}.stat strong{font-size:34px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:24px;align-items:start}
+.grid>*,.profile>*,.service-grid>*,.approval-grid>*{min-width:0}
+.service-grid,.approval-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:20px}
+.profile{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:20px}
+.card-head{flex-wrap:wrap;gap:12px}.card-head h2{font-size:18px}
+.card-body{padding:24px}.service p,.approval p,.detail{font-size:14px;line-height:1.7;overflow-wrap:anywhere}
+.card,.records-register,.calendar-card,.reception-list,.unit-inspector{min-width:0;max-width:100%}
+.welcome{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);min-height:0}
+.welcome-copy{padding:28px}.welcome-copy p{font-size:14px}.welcome-copy h2{font-size:27px}
+.video-frame{position:relative;min-height:220px}.video-frame video{position:absolute;width:100%;height:100%;object-fit:cover}
+.row{display:flex;flex-wrap:nowrap;gap:14px;margin:0;padding:20px;min-width:0}
+.row>*{width:auto;max-width:100%;padding:0;margin:0}.row .grow{min-width:0;flex:1;overflow-wrap:anywhere}
+.row h3{font-size:14px}.row p{font-size:13px}.row>.text-button{flex-shrink:0;max-width:90px}
+.badge{font-size:12px;white-space:normal;line-height:1.6}
+.table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.table-wrap table{width:100%;min-width:0;table-layout:auto;white-space:normal}
+.records-table .record-identity,.records-table .record-contact,.records-table .record-actions{min-width:0}
+.table-wrap th{font-size:11px;white-space:normal}.table-wrap td{font-size:14px;overflow-wrap:anywhere}.table-wrap td small{font-size:12px}
+.records-tools{display:flex;flex-wrap:wrap;gap:14px;padding:20px}
+.records-search{flex:1 1 240px;max-width:none;min-width:0;min-height:46px}.records-search input{font-size:16px}
+.records-filter{flex:0 1 auto;min-width:0}.records-filter select{font-size:14px;min-height:44px;max-width:100%;min-width:0}
+.records-result{font-size:12px}.record-identity>button{font-size:15px}.record-contact>span{font-size:14px}.record-contact .secondary-line{font-size:12px}
+.records-table tbody td,.records-table thead th{padding:18px 16px}.record-actions button{font-size:13px;min-height:44px;white-space:normal}
+.records-register-foot{font-size:12px;gap:12px;flex-wrap:wrap}.records-register-foot>span:last-child{white-space:normal}
+.reception-layout,.agenda-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+.reception-layout>*,.agenda-layout>*{min-width:0}
+.unit-inspector{position:sticky;top:96px;display:block}
+.reception-row,.reception-labels{display:grid;grid-template-columns:76px minmax(0,1.2fr) minmax(0,1fr) 100px;gap:16px;padding-inline:22px}
+.reception-row{min-height:132px}.reception-labels{display:grid;font-size:11px}
+.arrival-time strong{font-size:28px}.arrival-time small{font-size:12px}.arrival-client strong{font-size:15px}.arrival-client>span{font-size:13px}
+.arrival-service,.arrival-status{font-size:13px;line-height:1.6}.arrival-status{min-width:0;flex-wrap:wrap}
+.reception-list-head>span,.reception-foot{font-size:12px;line-height:1.7}
+.unit-title h2{font-size:36px}.unit-title p{font-size:14px}.unit-details dt{font-size:13px}.unit-details dd{font-size:14px;overflow-wrap:anywhere}
+.unit-details>div{display:grid;grid-template-columns:90px minmax(0,1fr);gap:12px}
+.unit-actions .btn{width:100%;font-size:13px}.unit-inspector-top>span{font-size:11px}.unit-inspector-top .text-button{font-size:13px}
+.week-strip{display:grid;grid-template-columns:110px repeat(7,minmax(0,1fr));overflow:auto;overscroll-behavior-x:contain;max-width:100%}
+.strip-day{min-height:96px;min-width:0;padding:15px 5px}.strip-day>span{font-size:12px}.strip-day strong{font-size:29px}.strip-day small{font-size:12px}
+.strip-navigation button{min-width:40px;min-height:44px}
+.calendar-title{display:flex;flex-wrap:wrap;gap:12px;min-width:0}.calendar-title h2{font-size:20px}
+.calendar-card>.card-head{flex-wrap:wrap;gap:16px}.calendar-title .month-arrows{display:flex}
+.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:0}
+.calendar .day{min-width:0;padding:8px 6px;min-height:120px}
+.weekday span{display:inline}.weekday abbr{display:none}.weekday{font-size:12px}
+.calendar-event{font-size:12px;padding:8px 5px}.calendar-event strong{font-size:14px}.calendar-event span{font-size:12px;overflow-wrap:anywhere;white-space:normal}.calendar-event small{font-size:11px}
+.day-number{font-size:13px}.day-count{font-size:11px}.calendar-key{display:flex;flex-wrap:wrap;font-size:12px;gap:12px}.calendar-key p{font-size:12px}
+.day-agenda{display:block}.appointment-card{margin-bottom:16px}.appointment-info{min-width:0}.appointment-info h3{font-size:15px}.appointment-info p{font-size:13px}
+.segmented{display:flex;flex-wrap:wrap;gap:3px}.segmented button{min-width:54px;min-height:44px;font-size:14px}
+.agenda-summary{display:flex;flex-wrap:wrap;gap:20px}.agenda-summary span{font-size:13px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;padding:24px}.fields label{min-width:0;font-size:14px}
+.fields input,.fields select,.fields textarea{width:100%;min-width:0;font-size:16px;min-height:48px}.fields .check{display:flex;align-items:flex-start;gap:12px}.fields .check input{width:20px;height:20px;min-height:20px;flex:0 0 20px}
+.fields .full{grid-column:1/-1}
+dialog{width:min(680px,calc(100% - 24px));max-width:calc(100% - 24px);max-height:calc(100dvh - 24px);padding:0;overflow-y:auto;margin:auto}
+.dialog-head,.dialog-footer{padding:20px 24px;gap:12px}.dialog-head h2{font-size:22px}.dialog-footer{display:flex;flex-wrap:wrap}.dialog-footer .btn{min-width:110px;flex:1}
+#toast{max-width:calc(100% - 32px);font-size:14px;line-height:1.6}
+/* Access reflows intrinsically: two usable panels or one full-width column. */
+.logged-out .shell{width:100%;margin:0;background:#e9eef3}
+.logged-out #sidebar,.logged-out #menu,.logged-out .shell>header,.logged-out .nav-backdrop{display:none}
+.logged-out main{container:access / inline-size;min-height:0;display:grid;align-items:center;justify-items:center;width:100%;max-width:none;padding:clamp(20px,4vw,64px) clamp(16px,4vw,56px) 28px}
+.auth-layout{width:100%;max-width:1200px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));align-items:stretch;margin:0;gap:0;border-radius:12px;overflow:hidden}
+.auth-intro{grid-row:auto;min-width:0;min-height:600px;padding:clamp(28px,3vw,48px);display:flex;flex-direction:column;justify-content:space-between}
+.auth-brand{font-size:52px}.auth-brand span{font-size:10px;letter-spacing:1.5px}.auth-message{padding-top:60px}
+.auth-intro h1{font-size:clamp(34px,3.5vw,48px);line-height:1.18;letter-spacing:-1.5px;margin:18px 0}
+.auth-intro p{font-size:16px}.auth-intro .eyebrow{font-size:11px}.auth-feature-line{font-size:12px}
+.login-card.card{grid-row:auto;padding:clamp(28px,3.5vw,52px);min-width:0;display:flex;flex-direction:column;justify-content:center}
+.login-card h2{font-size:clamp(25px,2.4vw,31px);line-height:1.3;overflow-wrap:anywhere}
+.login-card>p{font-size:15px;max-width:none;line-height:1.7}.auth-form-heading{font-size:11px;letter-spacing:.7px}
+.login-card label{font-size:15px;margin-bottom:22px}.login-card input.form-control{font-size:16px;min-height:50px;height:auto;padding:13px 14px}
+.login-card form .btn,.register-link .btn{min-height:48px;font-size:15px}.register-link p{font-size:14px}.register-link small{font-size:13px;line-height:1.7}
+.logged-out footer{max-width:1200px;flex-direction:row;align-items:center;padding:0 24px 24px;font-size:12px}
+@container workspace (max-width:1050px){
+ .reception-layout,.agenda-layout{grid-template-columns:minmax(0,1fr)}
+ .unit-inspector{position:static}.unit-title h2 br{display:none}.unit-title h2 br:after{content:' '}
+ .day-agenda{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+ .day-agenda-head,.day-agenda>.empty,.day-agenda>.btn{grid-column:1/-1}.appointment-card{margin:0}
+}
+@container workspace (max-width:900px){
+ .table-wrap table,.table-wrap tbody,.table-wrap tr,.table-wrap td{display:block;width:100%;min-width:0;max-width:100%;white-space:normal}
+ .table-wrap thead{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%)}
+ .table-wrap tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 20px;padding:22px;border-bottom:1px solid var(--line)}
+ .table-wrap td,.records-table tbody td{border:0;padding:7px 0;min-width:0;text-align:left;overflow-wrap:anywhere}
+ .table-wrap td[data-label]:before{content:attr(data-label);display:block;font-size:12px;font-weight:600;color:#71899b;margin-bottom:4px}
+ .table-wrap td[colspan]{grid-column:1/-1}.table-wrap td[colspan]:before{display:none}
+ .records-table .number-cell{display:none}
+ .records-table .record-identity,.records-table .record-contact,.records-table .record-actions{grid-column:1/-1}
+ .records-table .record-identity:before,.records-table .record-actions:before{display:none}
+ .record-identity>button{font-size:17px}.record-actions button{background:#edf4fb;border:1px solid #d3e2ef;border-radius:5px;padding:10px 14px;font-size:14px}
+ .records-table .record-contact>span{font-size:14px}.records-table .units-count{font-size:25px}
+}
+@container workspace (max-width:760px){
+ .welcome{grid-template-columns:minmax(0,1fr)}.welcome .video-frame{display:none}
+ .reception-heading .actions{width:100%;justify-content:space-between}
+ .reception-labels{display:none}
+ .reception-row{grid-template-columns:68px minmax(0,1fr);gap:6px 16px;padding:22px 18px;min-height:145px;align-items:start}
+ .arrival-time{grid-column:1;grid-row:1/4}.arrival-client{grid-column:2;grid-row:1}.arrival-service{grid-column:2;grid-row:2}.arrival-status{grid-column:2;grid-row:3;justify-content:flex-start;gap:6px;font-size:12px}
+ .arrival-status>span{display:none}.arrival-client strong{font-size:16px}.arrival-client>span{font-size:13px}.arrival-service{font-size:14px}.arrival-time strong{font-size:27px}
+ .week-strip{grid-template-columns:repeat(7,minmax(44px,1fr))}.strip-navigation{grid-column:1/-1;border-right:0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;padding:5px 10px}
+ .strip-day{min-height:86px;padding:12px 3px}.strip-day strong{font-size:25px}.strip-day>span{font-size:11px}.strip-day small{font-size:11px}
+ .calendar-title{width:100%;justify-content:space-between}.calendar-title h2{font-size:18px;flex:1;text-align:center}
+ .calendar .day{min-height:80px;padding:5px 3px}.weekday span{display:none}.weekday abbr{display:inline;text-decoration:none;font-size:12px}
+ .calendar-event{font-size:0;min-height:6px;height:6px;padding:0;border:0;background:#1264ac;border-radius:5px;margin:5px 3px}
+ .calendar-event>*{display:none}.day-count{display:none}.day-number{font-size:13px}
+ .calendar-key p{width:100%;margin:0}.calendar-key{font-size:12px}.calendar-key p:after{content:' Seleccione un día para consultar las citas.'}
+ .week-view .day{min-height:110px}
+ .agenda-summary .agenda-summary-note{width:100%;margin:0}
+ .card-head{padding:18px}.row{padding:18px}.row .text-button{max-width:74px}
+}
+@container workspace (max-width:440px){
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stat{padding:16px;min-height:128px}.stat-top{font-size:12px;gap:7px}.stat-icon{display:none}.stat strong{font-size:32px}.stat small{font-size:12px}
+ .table-wrap tbody tr{grid-template-columns:minmax(0,1fr);gap:4px;padding:20px}.records-tools{padding:16px}.records-search{flex-basis:100%}.records-filter{flex:1}.records-filter select{width:100%;max-width:none}.records-filter>span{display:none}
+ .reception-row{grid-template-columns:58px minmax(0,1fr);gap:7px 12px;padding:20px 14px}.arrival-time strong{font-size:25px}.arrival-client strong{font-size:15px}
+ .reception-list-head{padding:18px;flex-wrap:wrap;gap:10px}.unit-details{padding:5px 20px 15px}.unit-details>div{grid-template-columns:minmax(0,1fr);gap:4px}.unit-title,.unit-actions{padding-inline:20px}
+ .row{flex-wrap:wrap}.row .grow{flex:1 1 55%}.row>.badge{margin-left:auto}.row>.text-button{margin-left:auto}
+ .segmented button{min-width:48px;padding:8px}.reception-heading .btn{padding-inline:12px}
+ .calendar-title .today-button{display:none}.calendar-title h2{font-size:16px}.month-arrows .icon-button{padding:0;width:36px;min-width:36px}
+}
+@container access (max-width:839px){
+ .auth-layout{max-width:560px;grid-template-columns:minmax(0,1fr)}
+ .auth-intro{min-height:230px;padding:28px;display:block;grid-row:1}.auth-message{padding-top:35px}.auth-brand{font-size:42px}.auth-brand span{font-size:9px;margin-top:8px}
+ .auth-intro .eyebrow,.auth-intro p,.auth-feature-line{display:none}.auth-intro h1{font-size:30px;margin:0;line-height:1.2;letter-spacing:-1px}.auth-intro h1 br{display:none}
+ .auth-intro:after{background:linear-gradient(110deg,#10314edb,#10314e22)}
+ .login-card.card{grid-row:2;padding:32px}.login-card h2{font-size:28px}.auth-form-heading{font-size:11px}
+ .login-card>p{font-size:15px}.login-card label{font-size:15px}.register-link small{font-size:13px}
+}
+@media(max-width:1199px){
+ .shell{width:100%;margin-left:0}#menu{display:grid;place-items:center}
+ #sidebar{width:min(320px,calc(100% - 48px));padding-top:max(28px,env(safe-area-inset-top));transform:translateX(-101%);visibility:hidden;transition:transform .18s ease,visibility .18s}
+ .drawer-close{display:grid;place-items:center;position:absolute;right:14px;top:20px;width:44px;min-height:44px;font-size:27px;background:#edf3f8;color:#41667f}
+ .brand{padding-right:44px}body.menu-open{overflow:hidden}body.menu-open #sidebar{transform:translateX(0);visibility:visible}
+ body.menu-open .nav-backdrop{display:block;position:fixed;inset:0;z-index:40;background:#152e486e;backdrop-filter:blur(2px);border:0}
+}
+@media(max-width:640px){
+ main,main[data-page="clients"],main[data-page="vehicles"]{padding-top:24px;padding-bottom:32px}
+ .shell>header{min-height:64px;padding:10px var(--gutter);gap:8px}.avatar{flex-basis:36px;width:36px;height:36px}
+ header>div{font-size:12px}header strong{font-size:12px}header span{margin-inline:7px}
+ .fields{grid-template-columns:minmax(0,1fr);padding:22px;gap:20px}.fields .full{grid-column:1}.dialog-head,.dialog-footer{padding:18px 20px}
+ .dialog-head h2{font-size:21px}.dialog-footer .btn{min-width:0}
+ footer{font-size:12px;flex-direction:column;align-items:flex-start;gap:8px}
+ .logged-out main{padding:0;display:block}.logged-out .shell{background:#fff}
+ .auth-layout{max-width:none;border:0;border-radius:0;box-shadow:none}
+ .auth-intro{min-height:180px;padding:24px}.auth-message{padding-top:28px}.auth-brand{font-size:38px}.auth-brand span{font-size:9px}.auth-intro h1{font-size:27px}
+ .login-card.card{padding:28px 24px}.login-card h2{font-size:27px}.auth-form-heading{font-size:10px;letter-spacing:.6px}
+ .auth-access-mark{flex:0 0 33px}.register-link{padding-top:22px;margin-top:26px}.register-link p{font-size:14px}
+ .logged-out footer{background:#fff;flex-direction:column;align-items:center;font-size:12px;padding:8px 24px 24px}
+}
+@media(max-width:360px){
+ :root{--gutter:12px}.login-card.card,.auth-intro{padding-inline:20px}.login-card h2{font-size:25px}.auth-form-heading{font-size:9px}
+ header>div{font-size:11px}header strong{font-size:11px}.auth-intro h1{font-size:25px}
+}
+@media(max-height:500px) and (orientation:landscape){
+ .shell>header{position:static}.logged-out main{padding-top:20px;padding-bottom:20px}.auth-intro{min-height:160px}.auth-message{padding-top:24px}
+ dialog{max-height:calc(100dvh - 16px)}.dialog-head,.dialog-footer{position:static}
+}
+@media(prefers-reduced-motion:reduce){#sidebar{transition:none}}
+
+.stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+@container workspace (max-width:960px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container workspace (max-width:280px){.stats{grid-template-columns:minmax(0,1fr)}}
+@supports not (container-type:inline-size){
+ @media(max-width:1050px){.reception-layout,.agenda-layout,.grid{grid-template-columns:minmax(0,1fr)}.unit-inspector{position:static}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+ @media(max-width:900px){.auth-layout{grid-template-columns:minmax(0,1fr);max-width:560px}.auth-intro{min-height:220px}.auth-intro p,.auth-feature-line{display:none}.auth-message{padding-top:30px}}
+ @media(max-width:640px){.reception-row{grid-template-columns:58px minmax(0,1fr)}.arrival-time{grid-column:1;grid-row:1/4}.arrival-client,.arrival-service,.arrival-status{grid-column:2}.reception-labels{display:none}.week-strip{grid-template-columns:repeat(7,minmax(44px,1fr))}.strip-navigation{grid-column:1/-1}.table-wrap table{min-width:600px}}
+}
