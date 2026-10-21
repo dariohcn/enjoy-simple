@@ -31,7 +31,7 @@ const EnjoyConnection = (() => {
     }
     return tokens.access_token;
   }
-  async function rpc(action,payload={}){const token=await access();if(!token)throw Error('Debe iniciar sesión.');return request('/rest/v1/rpc/'+(action.startsWith('chat-')?'enjoy_chat':'enjoy_api'),{action,payload},token)}
+  async function rpc(action,payload={}){const token=await access();if(!token)throw Error('Debe iniciar sesión.');return request('/rest/v1/rpc/'+(action.startsWith('chat-')?'enjoy_chat':action.startsWith('order-')?'enjoy_orders':'enjoy_api'),{action,payload},token)}
   async function api(path,body){
     if(path==='register'){
       const b=body||{};
@@ -54,5 +54,6 @@ const EnjoyConnection = (() => {
   }
   return Object.freeze({api});
 })();
+
 
 
