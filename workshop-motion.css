@@ -1,0 +1,21 @@
+body.logged-out .auth-video.workshop-scene{background:#15364e;isolation:isolate;overflow:hidden}
+.workshop-scene-photo{display:block;width:100%;height:100%;object-fit:contain;object-position:center top;transform-origin:55% 45%;will-change:transform}
+.workshop-scene:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#15364e80 0%,transparent 19%,transparent 40%,#15364ec9 65%,#15364e 81%)}
+.workshop-scene-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 88% 30%,#e6a44a66,transparent 48%);pointer-events:none;opacity:.05}
+body.logged-out .auth-intro:has(.workshop-scene):after{background:linear-gradient(180deg,#0e2e4520 0%,#102f4510 48%,#123249ce 68%,#123249 100%);pointer-events:none}
+.workshop-scene-toggle{position:absolute;right:14px;top:14px;z-index:5;display:grid;place-items:center;width:29px;height:29px;border:1px solid #ffffff70;border-radius:50%;background:#123249a6;color:#fff;font:12px Manrope,Arial,sans-serif;cursor:pointer}
+.workshop-scene-toggle:focus-visible{outline:2px solid #e89432;outline-offset:3px}
+.workshop-css-motion .workshop-scene-photo{animation:enjoy-workshop-pan 12s ease-in-out infinite alternate}
+.scene-paused .workshop-scene-photo{animation-play-state:paused}
+@keyframes enjoy-workshop-pan{from{transform:translateX(-.3%) scale(1)}to{transform:translateX(.3%) scale(1.055)}}
+@media(max-width:900px){
+ body.logged-out .auth-intro:has(.workshop-scene){display:flex!important;flex-direction:column!important;gap:16px;background:#15364e;padding:20px!important}
+ body.logged-out .auth-intro:has(.workshop-scene)>.auth-brand{order:0}
+ body.logged-out .auth-intro:has(.workshop-scene)>.auth-message{order:1;padding-top:4px}
+ body.logged-out .auth-video.workshop-scene{position:relative!important;inset:auto!important;z-index:0!important;width:100%;height:auto!important;aspect-ratio:3/2!important;order:2;flex:none;border-radius:8px;margin:0}
+ .workshop-scene-photo{object-position:center;object-fit:contain}
+ .workshop-scene:after{background:linear-gradient(180deg,#15364e15,transparent 40%,#15364e15)}
+ body.logged-out .auth-intro:has(.workshop-scene):after{display:none}
+ .workshop-scene-toggle{top:9px;right:9px}
+}
+@media(prefers-reduced-motion:reduce){.workshop-css-motion .workshop-scene-photo{animation:none}}
