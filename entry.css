@@ -76,3 +76,58 @@ body.logged-out #enjoy-entry .entry-visual .auth-video{position:absolute!importa
  #enjoy-entry .entry-footer{font-size:9px!important;min-height:42px}
 }
 @media(pointer:coarse){#enjoy-entry #login-form input{font-size:16px!important;min-height:44px}#enjoy-entry #login-form button[type="submit"],#enjoy-entry .entry-register .btn{min-height:44px}}
+
+/* Refined cover: the introduction supports the sign-in instead of pushing it away. */
+body.logged-out #contenido #enjoy-entry{background:radial-gradient(ellipse at 95% 0%,#e7f0f9 0%,transparent 44%),#f6f8fb}
+#enjoy-entry .entry-header{min-height:72px;border-bottom-color:#e0e8ef}
+#enjoy-entry .entry-logo{position:relative}
+#enjoy-entry .entry-logo:after{content:"";position:absolute;width:19px;height:3px;background:#df963e;bottom:-7px;left:2px;border-radius:3px}
+#enjoy-entry .entry-header-note{color:#5a758b;font-size:11px!important;letter-spacing:.2px}
+#enjoy-entry .entry-layout{grid-template-columns:minmax(0,1.2fr) minmax(350px,.8fr);gap:clamp(38px,5vw,80px);padding:26px 0}
+#enjoy-entry .entry-story-heading{max-width:490px;margin-bottom:19px}
+#enjoy-entry .entry-story-heading h1{font-size:28px!important;line-height:1.3!important;font-weight:650;margin:12px 0}
+#enjoy-entry .entry-story-heading p{font-size:12px!important;color:#526c80!important;max-width:380px}
+#enjoy-entry .entry-eyebrow{font-size:8px!important;color:#628198;letter-spacing:1.2px}
+#enjoy-entry .entry-visual{border-radius:13px;border:1px solid #cfdeea;box-shadow:0 8px 22px #173c5910}
+#enjoy-entry .entry-visual-caption{display:none}
+#enjoy-entry .entry-visual .workshop-scene:after{background:linear-gradient(180deg,#15364e0a,transparent 55%,#15364e15)}
+#enjoy-entry .entry-benefits{gap:10px;margin-top:13px}
+#enjoy-entry .entry-benefits>span{padding:10px 11px;border:1px solid #dde7ef;background:#ffffffa8;border-radius:7px;gap:10px;font-size:10px!important}
+#enjoy-entry .entry-benefits strong{font-size:10px!important}
+#enjoy-entry .entry-benefits svg{width:17px;height:17px}
+#enjoy-entry .entry-access{border:1px solid #d8e4ed;border-top:3px solid #1264ac;border-radius:13px;box-shadow:0 12px 40px #173c5909;padding:clamp(26px,3vw,40px)}
+#enjoy-entry .entry-access-title{margin-bottom:18px;font-size:8px!important;letter-spacing:1px}
+#enjoy-entry .entry-access-icon{width:30px;height:30px}
+#enjoy-entry .entry-access h2{font-size:21px!important;letter-spacing:-.5px!important}
+#enjoy-entry .entry-access>p{margin-bottom:25px;font-size:12px!important}
+#enjoy-entry .entry-register{margin-top:23px;padding-top:21px;gap:12px}
+#enjoy-entry .entry-register>span{font-size:11px!important}
+#enjoy-entry .entry-register .btn{background:white;border-color:#c9dcea;color:#22679b}
+#enjoy-entry .entry-footer{min-height:42px;border-color:#e0e8ef}
+@media(min-width:1500px){#enjoy-entry .entry-layout{grid-template-columns:minmax(0,1.2fr) minmax(380px,.8fr);gap:6vw}}
+@media(max-width:900px){
+ #enjoy-entry .entry-layout{grid-template-columns:minmax(0,1fr);gap:24px;max-width:650px;padding:24px 0}
+ #enjoy-entry .entry-story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:22px;align-items:center}
+ #enjoy-entry .entry-story-heading{margin:0}
+ #enjoy-entry .entry-story-heading h1{font-size:24px!important}
+ #enjoy-entry .entry-story-heading h1 br{display:block}
+ #enjoy-entry .entry-story-heading h1>span:before{content:none}
+ #enjoy-entry .entry-story-heading p{font-size:11px!important;line-height:1.65!important}
+ #enjoy-entry .entry-benefits{display:none}
+ #enjoy-entry .entry-access{padding:27px}
+}
+@media(max-width:500px){
+ #enjoy-entry .entry-header{min-height:62px}
+ #enjoy-entry .entry-layout{padding:22px 0;gap:21px}
+ #enjoy-entry .entry-story{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+ #enjoy-entry .entry-eyebrow{display:none}
+ #enjoy-entry .entry-story-heading h1{font-size:20px!important;line-height:1.32!important;margin:0 0 9px!important;letter-spacing:-.5px!important}
+ #enjoy-entry .entry-story-heading p{font-size:10px!important;line-height:1.65!important;margin:0!important}
+ #enjoy-entry .entry-visual{border-radius:9px}
+ #enjoy-entry .entry-access{padding:24px 20px}
+ #enjoy-entry .entry-access-title{margin-bottom:14px}
+ #enjoy-entry .entry-access h2{font-size:19px!important}
+ #enjoy-entry .entry-access>p{margin-bottom:23px}
+ #enjoy-entry .entry-logo>span{font-size:7px!important}
+ #enjoy-entry .workshop-scene-toggle{width:25px;height:25px;top:6px;right:6px;font-size:10px!important}
+}
