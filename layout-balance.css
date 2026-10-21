@@ -1,0 +1,42 @@
+/* Compact typography with room between independent groups. */
+html body.platform-adapted:not(.logged-out) #contenido{padding-block:20px!important}
+html body.platform-adapted:not(.logged-out) .live-title{margin-bottom:18px}
+html body.platform-adapted:not(.logged-out) .live-filters{margin-bottom:18px;gap:14px}
+html body.platform-adapted:not(.logged-out) .live-stats{gap:12px;margin-bottom:20px}
+html body.platform-adapted:not(.logged-out) .live-stat{padding:13px 15px}
+html body.platform-adapted:not(.logged-out) .live-stat strong{margin-block:7px}
+html body.platform-adapted:not(.logged-out) .live-chart-grid{gap:18px;margin-bottom:20px}
+html body.platform-adapted:not(.logged-out) .live-card{padding:18px}
+html body.platform-adapted:not(.logged-out) .live-card>h2{margin-bottom:16px}
+html body.platform-adapted:not(.logged-out) .network-map-card{grid-column:1/-1;padding:20px}
+.network-map-tools{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e6edf2}
+.network-map-layout{grid-template-columns:minmax(0,1.3fr) minmax(240px,.9fr);gap:24px;align-items:stretch}
+.network-map-canvas{background:#f1f6f9;border:1px solid #dce7ee;border-radius:8px;padding:12px}
+.network-map-canvas svg{height:330px;max-width:520px}
+.map-country{fill:#d5e6ef;stroke:#739bb5;stroke-width:1.1}
+.map-country-name{fill:#7999ad}
+.map-dot{fill:#1878b1;stroke-width:2.5}
+.map-halo{fill:#1878b118}
+.network-map-pin.selected .map-halo{fill:#d09a3738;stroke:#cf9c46;stroke-width:.7}
+.network-map-directory{padding:0 0 0 20px;border-left:1px solid #e4ecf2}
+.network-city-filter{display:block;margin:0 0 18px;color:#667f92}
+.network-city-filter select{display:block;width:100%;min-height:36px;margin-top:7px;border:1px solid #d6e2eb;border-radius:5px;background:#fff;padding:8px 10px;color:#345d79}
+.network-location-list{max-height:265px;padding-right:6px}
+.network-location-list h3{margin:0 0 12px!important}
+.network-location-list>button{padding:12px 3px;gap:12px;min-height:58px}
+.network-location-list strong{line-height:1.6!important}
+.network-location-list small{margin-top:5px}
+.network-map-note{margin-top:16px;padding-top:12px;border-top:1px solid #e7edf2}
+@media(max-width:700px){
+ html body.platform-adapted:not(.logged-out) #contenido{padding:16px 12px!important}
+ html body.platform-adapted:not(.logged-out) .live-chart-grid{gap:16px}
+ html body.platform-adapted:not(.logged-out) .live-card{padding:15px}
+ html body.platform-adapted:not(.logged-out) .live-stat{padding:12px}
+ .network-map-layout{grid-template-columns:minmax(0,1fr);gap:20px}
+ .network-map-canvas{padding:8px}
+ .network-map-canvas svg{height:280px}
+ .network-map-directory{border-left:0;padding:0;border-top:1px solid #e4ecf2;padding-top:16px}
+ .network-location-list{max-height:240px}
+ .network-map-tools{align-items:center;gap:12px}
+}
+.metrics-basis{font-size:var(--type-small,10px);line-height:1.6;color:#58748a;background:#eaf1f6;border-left:2px solid #82a8c2;padding:10px 12px;margin:0 0 16px;border-radius:3px}

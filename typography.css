@@ -1,0 +1,54 @@
+/* Single type system, shared by both roles and every screen. */
+:root{--enjoy-font:Manrope,Arial,sans-serif;--type-title:14px;--type-section:11px;--type-body:10px;--type-small:10px;--type-metric:17px}
+html body,body :where(*){font-family:var(--enjoy-font)!important}
+body{font-size:var(--type-body);font-weight:400;line-height:1.5}
+body :is(button,input,select,textarea){font-size:var(--type-body)!important;line-height:1.5!important}
+body :is(button,.btn){font-weight:600!important;letter-spacing:0!important}
+body :is(h1,.page-head h1,.live-title h1,.operation-heading h1,.login-card h2){font-size:var(--type-title)!important;line-height:1.35!important;font-weight:600!important;letter-spacing:-.25px!important}
+body :is(h2,.dialog-head h2){font-size:var(--type-section)!important;line-height:1.45!important;font-weight:600!important;letter-spacing:0!important}
+body :is(h3,h4,h5,h6){font-size:var(--type-body)!important;line-height:1.45!important;font-weight:600!important;letter-spacing:0!important}
+body :is(p,label,table td,.text-button,.record-contact>span,.record-identity>button,.operation-shortcut-list strong,.network-location-list strong,.live-message p){font-size:var(--type-body)!important;line-height:1.5!important;letter-spacing:0!important}
+body :is(small,table th,.eyebrow,.stat-top,.live-stat>span,.live-filters label,.classified-toolbar label,.classification-tags span,.network-map-tools,.network-map-note,.network-location-list small,.live-note,.live-chart-total small,.operation-agenda-foot,.header-context,.auth-credit,.register-link small,.live-contacts small,.live-chat-heading small,.live-message small,.live-message b){font-size:var(--type-small)!important;line-height:1.5!important;letter-spacing:0!important}
+body :is(.live-stat>strong,.stat>strong,.operation-metric strong,.live-chart-total,.live-donut b,.units-count){font-size:var(--type-metric)!important;font-weight:600!important;line-height:1.25!important;font-variant-numeric:tabular-nums;letter-spacing:-.3px!important}
+body :is(.classified-price strong,.price){font-size:var(--type-title)!important;font-weight:600!important;line-height:1.35!important}
+body #nav button,body .workspace strong{font-size:var(--type-small)!important}
+body .workspace span{font-size:var(--type-small)!important}
+body :is(.auth-brand,.brand,.startup-brand){font-size:24px!important;font-weight:700!important;line-height:1.1!important;letter-spacing:-1.5px!important}
+body :is(.brand span,.auth-brand span,.auth-form-heading,.auth-feature-line,.auth-feature-line span){font-size:var(--type-small)!important;line-height:1.5!important;letter-spacing:.4px!important}
+body :is(.live-line,.network-map-canvas,.live-scatter) text{font-size:11px!important;font-weight:400!important;letter-spacing:0!important}
+body .map-country-name{font-weight:600!important}
+body .map-islands text{font-size:8px!important}
+body .live-gauge text{font-size:var(--type-metric)!important;font-weight:600!important}
+@media(pointer:coarse){body :is(input,select,textarea){font-size:16px!important}}
+html body.platform-adapted #dialog .dialog-head h2{font-size:var(--type-title)!important;font-weight:600!important;line-height:1.35!important}
+body .network-location-list strong{font-weight:600!important}
+
+html body.platform-adapted:not(.logged-out) #contenido h1{font-size:var(--type-title)!important}
+html body.platform-adapted:not(.logged-out) #contenido h2{font-size:var(--type-section)!important}
+html body.platform-adapted:not(.logged-out) #contenido h3{font-size:var(--type-body)!important}
+html body.platform-adapted:not(.logged-out) #contenido :is(.live-stat>strong,.stat>strong,.operation-metric strong,.live-chart-total){font-size:var(--type-metric)!important}
+html body.platform-adapted:not(.logged-out) #contenido .live-donut b{font-size:var(--type-metric)!important}
+html body.logged-out .login-card h2{font-size:var(--type-title)!important}
+html body.platform-adapted:not(.logged-out) #contenido .btn{font-size:var(--type-body)!important}
+/* Complete the compact scale across secondary screens and form overrides. */
+html body.platform-adapted:not(.logged-out) #contenido :is(input,select,textarea,.text-button,.record-actions button,.live-contacts button,.network-city-tabs button){font-size:var(--type-body)!important}
+html body.platform-adapted #dialog :is(input,select,textarea,label,.btn){font-size:var(--type-body)!important}
+html body.platform-adapted:not(.logged-out) #contenido :is(.classified-toolbar label,.live-filters label,.stat-top,.live-stat>span,.classification-tags span,.catalog-form-note,.network-map-note){font-size:var(--type-small)!important}
+html body.platform-adapted:not(.logged-out) #contenido :is(.record-identity>button,.record-contact>span,.operation-shortcut-list strong,.live-message p,.classified-product p){font-size:var(--type-body)!important}
+html body.platform-adapted:not(.logged-out) #contenido :is(.classified-price strong,.price){font-size:var(--type-title)!important}
+@media(pointer:coarse){html body.platform-adapted:not(.logged-out) #contenido :is(input,select,textarea),html body.platform-adapted #dialog :is(input,select,textarea),html body.logged-out .login-card input.form-control{font-size:16px!important}}
+
+/* Dense desktop/workspace presentation; retain usable control hit areas. */
+html body.platform-adapted:not(.logged-out) #contenido{padding-top:12px!important;padding-bottom:12px!important}
+html body.platform-adapted:not(.logged-out) .live-stat{padding:8px 10px}
+html body.platform-adapted:not(.logged-out) .stat{padding:9px 11px;min-height:76px}
+html body.platform-adapted:not(.logged-out) .live-card{padding:12px}
+html body.platform-adapted:not(.logged-out) .live-title{margin-bottom:9px}
+html body.platform-adapted:not(.logged-out) .live-chart-grid,html body.platform-adapted:not(.logged-out) .live-stats{gap:8px}
+html body.platform-adapted:not(.logged-out) #nav button{padding-block:7px;min-height:32px}
+html body.platform-adapted:not(.logged-out) :is(.live-chart-total,.live-stat strong,.stat strong){margin-block:4px}
+html body.platform-adapted #dialog .fields{padding:13px;gap:9px}
+html body.platform-adapted #dialog .dialog-head{padding:12px 13px}
+html body.platform-adapted #dialog .dialog-footer{padding:10px 13px}
+html body.platform-adapted:not(.logged-out) #contenido :is(.page-head p,.operation-heading p,.live-title p,.network-location-list strong,.live-note){font-size:var(--type-body)!important}
+@media(pointer:coarse){html body.platform-adapted:not(.logged-out) #nav button{min-height:40px}}
