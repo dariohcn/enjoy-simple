@@ -8,7 +8,7 @@ function mountWorkshopScene(){
  const photo=host.querySelector('img'),glow=host.querySelector('.workshop-scene-glow'),button=host.querySelector('button');
  enjoyScenePaused=matchMedia('(prefers-reduced-motion: reduce)').matches;
  if(window.Motion?.animate&&!enjoyScenePaused){
- enjoySceneAnimations=[Motion.animate(photo,{scale:[1,1.055],x:['-.3%','.3%']},{duration:12,ease:'easeInOut',repeat:Infinity,repeatType:'reverse'}),Motion.animate(glow,{opacity:[.05,.2]},{duration:5,ease:'easeInOut',repeat:Infinity,repeatType:'reverse'})];
+ enjoySceneAnimations=[Motion.animate(photo,{scale:[1,1.085],x:['-.5%','.5%']},{duration:5,ease:'easeInOut',repeat:Infinity,repeatType:'reverse'}),Motion.animate(glow,{opacity:[.05,.2]},{duration:5,ease:'easeInOut',repeat:Infinity,repeatType:'reverse'})];
  host.dataset.motionEngine='motion';
  }else if(!enjoyScenePaused){host.classList.add('workshop-css-motion');host.dataset.motionEngine='css-fallback';}
  const update=()=>{button.textContent=enjoyScenePaused?'▶':'Ⅱ';button.setAttribute('aria-label',enjoyScenePaused?'Reanudar movimiento de la escena':'Pausar movimiento de la escena');button.setAttribute('aria-pressed',String(enjoyScenePaused));host.classList.toggle('scene-paused',enjoyScenePaused);};
