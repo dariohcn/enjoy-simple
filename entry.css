@@ -220,3 +220,21 @@ body.logged-out #contenido #enjoy-entry{background:#eaf0f5;padding:0 clamp(20px,
  #enjoy-entry .entry-access>p{margin-bottom:19px}
  #enjoy-entry .entry-register{margin-top:18px;padding-top:17px;gap:10px}
 }
+
+/* Reference proportions at native browser zoom; no page scaling. */
+@media(min-width:1100px){
+ #enjoy-entry .entry-layout{max-width:1520px;width:min(100%,80vw);grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr)}
+ #enjoy-entry .entry-story{min-height:clamp(570px,73vh,700px);padding:clamp(30px,2.2vw,42px)}
+ #enjoy-entry .entry-access{padding:clamp(30px,3.6vw,68px)}
+ #enjoy-entry .entry-footer{max-width:1520px;width:min(100%,80vw)}
+}
+@media(min-width:1100px) and (max-height:760px){
+ #enjoy-entry .entry-header{min-height:62px}
+ #enjoy-entry .entry-story{min-height:520px}
+ #enjoy-entry .entry-access{padding:26px 34px}
+ #enjoy-entry .entry-access-title{margin-bottom:16px}
+ #enjoy-entry .entry-access>p{margin-bottom:20px}
+ #enjoy-entry .entry-register{margin-top:20px;padding-top:17px}
+ #enjoy-entry .entry-footer{min-height:42px}
+}
+#enjoy-entry :is(input,button){max-width:100%}
