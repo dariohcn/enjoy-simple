@@ -131,3 +131,57 @@ body.logged-out #contenido #enjoy-entry{background:radial-gradient(ellipse at 95
  #enjoy-entry .entry-logo>span{font-size:7px!important}
  #enjoy-entry .workshop-scene-toggle{width:25px;height:25px;top:6px;right:6px;font-size:10px!important}
 }
+
+/* Automotive editorial cover: a single composed surface. */
+body.logged-out #contenido #enjoy-entry{background:#eaf0f5;padding:0 clamp(20px,4vw,64px);color:#193349}
+#enjoy-entry .entry-header{border:0;min-height:76px}
+#enjoy-entry .entry-layout{flex:0 1 auto;width:100%;max-width:1260px;margin:auto;gap:0;padding:0;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);background:white;border:1px solid #d9e2ea;border-radius:20px;overflow:hidden;box-shadow:0 24px 70px #18374c10;align-items:stretch}
+#enjoy-entry .entry-story{background:#112d43;padding:32px;display:flex;flex-direction:column;gap:0;position:relative}
+#enjoy-entry .entry-story-heading{margin:0 0 22px;max-width:460px}
+#enjoy-entry .entry-eyebrow{color:#a8c1d4;font-size:9px!important}
+#enjoy-entry .entry-eyebrow:before{background:#f3ad49;width:24px}
+#enjoy-entry .entry-story-heading h1{color:#fff!important;font-size:30px!important;line-height:1.22!important;letter-spacing:-.9px!important;margin:16px 0 12px}
+#enjoy-entry .entry-story-heading h1>span{color:#a9d4f4}
+#enjoy-entry .entry-story-heading p{color:#bed0de!important;font-size:12px!important;line-height:1.7!important;max-width:350px}
+#enjoy-entry .entry-visual{aspect-ratio:3/2;border:1px solid #ffffff20;border-radius:12px;box-shadow:none;width:100%}
+#enjoy-entry .entry-benefits{margin-top:20px;gap:16px}
+#enjoy-entry .entry-benefits>span{background:none;border:0;border-radius:0;padding:0;gap:8px;color:#9ab4c7;font-size:10px!important}
+#enjoy-entry .entry-benefits strong{color:#e1eaf1;font-size:11px!important}
+#enjoy-entry .entry-benefits svg{color:#e3ad61;stroke:#e3ad61;width:18px;height:18px}
+#enjoy-entry .entry-access{border:0;border-radius:0;box-shadow:none;align-self:center;padding:40px clamp(28px,4vw,58px);background:white}
+#enjoy-entry .entry-access-title{font-size:9px!important;letter-spacing:1.2px;color:#678096;margin-bottom:24px}
+#enjoy-entry .entry-access-icon{background:#eaf3fa;border:0;color:#1264ac;width:32px;height:32px}
+#enjoy-entry .entry-access h2{font-size:23px!important;color:#132f46!important;font-weight:650;letter-spacing:-.6px!important}
+#enjoy-entry .entry-access>p{font-size:12px!important;margin-bottom:28px;color:#708496}
+#enjoy-entry #login-form label{font-size:12px!important;color:#314e65;margin-bottom:18px}
+#enjoy-entry #login-form input{height:43px;min-height:43px;border-radius:7px;border-color:#cbd8e3;background:#f8fafc}
+#enjoy-entry #login-form button[type=submit]{min-height:43px;background:#155f97!important;border-color:#155f97!important;border-radius:7px;box-shadow:0 4px 10px #155f971a}
+#enjoy-entry .entry-register{margin-top:26px;padding-top:23px}
+#enjoy-entry .entry-register .btn{border:1px solid #cbd8e3!important;color:#315c7d!important;background:#fff!important;border-radius:7px}
+#enjoy-entry .entry-footer{border:0;min-height:60px;max-width:1260px;width:100%;margin:0 auto}
+@media(min-width:1500px){#enjoy-entry .entry-layout{grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:0}}
+@media(max-width:900px){
+ #enjoy-entry .entry-layout{max-width:650px;grid-template-columns:1fr;margin:12px auto 22px}
+ #enjoy-entry .entry-story{display:grid;grid-template-columns:1fr 1fr;padding:24px;gap:22px;align-items:center}
+ #enjoy-entry .entry-story-heading{margin:0}
+ #enjoy-entry .entry-story-heading h1{font-size:24px!important;margin:12px 0}
+ #enjoy-entry .entry-story-heading p{font-size:11px!important}
+ #enjoy-entry .entry-benefits{display:none}
+ #enjoy-entry .entry-access{width:100%;box-sizing:border-box;padding:28px 32px}
+ #enjoy-entry .entry-header{min-height:66px}
+ #enjoy-entry .entry-footer{min-height:44px}
+}
+@media(max-width:500px){
+ body.logged-out #contenido #enjoy-entry{padding:0 14px}
+ #enjoy-entry .entry-layout{border-radius:14px;margin:6px auto 12px}
+ #enjoy-entry .entry-story{padding:19px 17px;gap:14px;grid-template-columns:1.05fr 1fr}
+ #enjoy-entry .entry-story-heading h1{font-size:20px!important;margin:0 0 8px!important;line-height:1.28!important}
+ #enjoy-entry .entry-story-heading p{font-size:10px!important;line-height:1.6!important}
+ #enjoy-entry .entry-visual{border-radius:8px}
+ #enjoy-entry .entry-access{padding:25px 22px}
+ #enjoy-entry .entry-access-title{margin-bottom:16px}
+ #enjoy-entry .entry-access h2{font-size:20px!important}
+ #enjoy-entry .entry-access>p{margin-bottom:22px}
+ #enjoy-entry .entry-register{margin-top:21px;padding-top:20px}
+ #enjoy-entry .entry-header{min-height:62px}
+}
