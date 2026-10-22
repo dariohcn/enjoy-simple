@@ -238,3 +238,24 @@ body.logged-out #contenido #enjoy-entry{background:#eaf0f5;padding:0 clamp(20px,
  #enjoy-entry .entry-footer{min-height:42px}
 }
 #enjoy-entry :is(input,button){max-width:100%}
+
+/* Concise film typography: left aligned, clear hierarchy and protected contrast. */
+#enjoy-entry .entry-story-heading{align-self:flex-start!important;max-width:360px!important;margin:0!important;text-align:left;filter:drop-shadow(0 1px 3px #07152245)}
+#enjoy-entry .entry-story-heading h1{font-size:28px!important;line-height:1.18!important;letter-spacing:-.7px!important;font-weight:600!important;margin:15px 0 13px!important}
+#enjoy-entry .entry-story-heading h1>span{font-weight:450!important;color:#e2ebf3}
+#enjoy-entry .entry-story-heading p{font-size:12px!important;line-height:1.7!important;max-width:260px!important;color:#d2dee8!important;margin:0!important}
+#enjoy-entry .entry-eyebrow{font-size:8px!important;letter-spacing:1.4px!important;font-weight:600}
+#enjoy-entry .entry-visual:after{background:linear-gradient(100deg,#071724ac 0%,#07172430 68%,transparent),linear-gradient(180deg,#07172460,transparent 52%,#071724aa)}
+@media(max-width:900px){
+ #enjoy-entry .entry-story{padding:25px!important;align-items:flex-start!important}
+ #enjoy-entry .entry-story-heading{width:auto!important;max-width:290px!important}
+ #enjoy-entry .entry-story-heading h1{font-size:25px!important;margin:12px 0 11px!important}
+ #enjoy-entry .entry-story-heading p{font-size:11px!important;line-height:1.65!important}
+ #enjoy-entry .entry-story-heading h1 br,#enjoy-entry .entry-story-heading p br{display:block!important}
+}
+@media(max-width:500px){
+ #enjoy-entry .entry-story{padding:23px 21px!important;min-height:232px}
+ #enjoy-entry .entry-story-heading{max-width:220px!important}
+ #enjoy-entry .entry-story-heading h1{font-size:23px!important;line-height:1.2!important;margin:0 0 12px!important;letter-spacing:-.5px!important}
+ #enjoy-entry .entry-story-heading p{font-size:11px!important;max-width:205px!important}
+}
