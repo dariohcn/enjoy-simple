@@ -21,8 +21,8 @@ for(const role of ['owner','admin']){
  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(result)});
  });
  await page.goto('https://dariohcn.github.io/enjoy-simple/acceso.html',{waitUntil:'domcontentloaded',timeout:60000});
- try{await page.waitForSelector(role==='admin'?'#login-form':'#nav button[data-view]',{timeout:10000});}catch(e){console.log(JSON.stringify({role,errors,main:await page.locator('#contenido').innerText()}));throw e;}
- await page.addStyleTag({content:css});await page.addScriptTag({content:js});if(role==='admin')await page.evaluate(f=>{session=f.session;data=f.data;view='monitor';render();},{session:{email:'admin@qa.invalid',role:'admin',workshop:''},data});
+ try{await page.waitForSelector(role==='admin'?'#login-form':'#nav button[data-view], #nav button[data-integrated-view]',{timeout:10000});}catch(e){console.log(JSON.stringify({role,errors,main:await page.locator('#contenido').innerText()}));throw e;}
+ const alreadyIntegrated=await page.evaluate(()=>typeof names.proforma!=='undefined');if(!alreadyIntegrated){await page.addStyleTag({content:css});await page.addScriptTag({content:js});}if(role==='admin')await page.evaluate(f=>{session=f.session;data=f.data;view='monitor';render();},{session:{email:'admin@qa.invalid',role:'admin',workshop:''},data});
  await page.waitForSelector('[data-integrated-view]');
  const homeText=await page.locator('#contenido').innerText();
  assert(!homeText.includes('Chat con cliente'));
