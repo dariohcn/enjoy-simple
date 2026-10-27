@@ -34,6 +34,8 @@ function appointmentFields(){
  hidden('catalogueServiceId',service.id);hidden('catalogueServiceName',service.name);hidden('associatedProducts',JSON.stringify(products));const reason=form.querySelector('[name="reason"]');if(!reason.value.trim())reason.value=service.name;return previous.call(form,event);};
 }
 modal=function(...args){const result=baseModal(...args);if(session?.role==='owner'&&editContext.action==='appointment')appointmentFields();return result;};
+const previousOrderPending=renderOrderPending;
+renderOrderPending=function(){if(!session)return;const actual=view;if(actual==='dashboard')view='overview';try{if(['overview','monitor'].includes(view)&&!$('#contenido .workbench-strip')&&!$('#contenido .live-title'))return;return previousOrderPending();}finally{view=actual;}};
 const baseAppointmentCard=appointmentCard;
 appointmentCard=function(a){const html=baseAppointmentCard(a);let products=a.associatedProducts||[];try{if(typeof products==='string')products=JSON.parse(products);}catch{products=[];}const extra=(a.catalogueServiceName?'<p>Servicio: '+esc(a.catalogueServiceName)+'</p>':'')+(Array.isArray(products)&&products.length?'<p>Productos: '+products.map(p=>esc(p.name)+' × '+Number(p.qty)).join(' · ')+'</p>':'');return html.replace('</article>',()=>'<div class="integration-appointment-detail">'+extra+'</div></article>');};
 go=function(next){if(!permitted(next))return toast('Esta sección no está disponible para su perfil.');return baseGo(next);};
