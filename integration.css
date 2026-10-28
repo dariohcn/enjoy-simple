@@ -17,3 +17,18 @@
 /* Keyboard focus and current section share the desktop and mobile navigation state. */
 .integration-tile:focus-visible,[data-integrated-view]:focus-visible{outline:3px solid #247daf;outline-offset:3px}
 #mobile-nav button[data-integrated-view].active{background:#e1f0fa;color:#0f659a;border-radius:8px;font-weight:600}
+
+/* Public reference report, separate from workshop operational data. */
+.maintenance-report-panel{background:#fff;border:1px solid #dce5ec;border-radius:12px;overflow:hidden;min-width:0}
+.maintenance-report-toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px}
+.maintenance-report-toolbar strong{font-size:15px;color:#203d52}.maintenance-report-toolbar p{font-size:13px;line-height:1.5;margin:6px 0 0;color:#607586}
+.maintenance-report-toolbar .actions{display:flex;flex-wrap:wrap;gap:8px;flex-shrink:0}
+.maintenance-report-source,.maintenance-report-help,.maintenance-report-feedback{font-size:12px;line-height:1.5;color:#607586;padding:0 20px;margin:0 0 12px}
+.maintenance-report-source{background:#f0f6fa;padding:10px 20px}
+.maintenance-report-frame{height:clamp(520px,72vh,960px);background:#f3f6f8}
+.maintenance-report-frame iframe{border:0;width:100%;height:100%;display:block}
+.maintenance-report-help{margin-top:12px}
+.maintenance-report-panel:fullscreen{width:100%;height:100%;border-radius:0;display:flex;flex-direction:column;overflow:auto}
+.maintenance-report-panel:fullscreen .maintenance-report-frame{flex:1;min-height:300px}
+@media(max-width:900px){.maintenance-report-toolbar{align-items:flex-start;flex-direction:column}.maintenance-report-toolbar .actions{flex-shrink:1}}
+@media(max-width:600px){.maintenance-report-toolbar{padding:14px}.maintenance-report-source,.maintenance-report-help,.maintenance-report-feedback{padding-left:14px;padding-right:14px}.maintenance-report-frame{height:72svh;min-height:480px}.maintenance-report-toolbar .btn{font-size:12px;padding:9px 12px}}
