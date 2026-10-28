@@ -13,3 +13,7 @@
 .integration-grid>.integration-tile:nth-child(3n){border-bottom:3px solid #398f84}
 @media(max-width:760px){.integration-card-photo{height:76px}.integration-tile{min-height:172px;padding:0 12px 12px}.integration-card-photo{width:calc(100% + 24px);margin:0 -12px 3px}.integration-tile:has(.integration-card-photo) .integration-icon{top:58px;width:28px;height:28px}.integration-tile strong{font-size:14px}.integration-tile small{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.integration-tile{transition:none}.integration-tile:hover{transform:none}}
+
+/* Keyboard focus and current section share the desktop and mobile navigation state. */
+.integration-tile:focus-visible,[data-integrated-view]:focus-visible{outline:3px solid #247daf;outline-offset:3px}
+#mobile-nav button[data-integrated-view].active{background:#e1f0fa;color:#0f659a;border-radius:8px;font-weight:600}

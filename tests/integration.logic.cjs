@@ -9,3 +9,10 @@ s.session.role='admin';assert(t.permitted('catalogImport'));assert(!t.permitted(
 assert.deepEqual(Array.from(t.parseCSV('codigo,tipo,nombre,categoria,precio,tipo_servicio,duracion\nS1,servicio,"Revisión, preventiva",Motor,25.00,Diagnóstico,60')).map(x=>x.type),['service']);
 assert.throws(()=>t.parseCSV('codigo,tipo,nombre,categoria,precio\nS1,servicio,X,Motor,-5'));assert.throws(()=>t.parseCSV('codigo,tipo,nombre,categoria,precio\nS1,servicio,X,Motor,5\nS1,servicio,Y,Motor,5'));
 console.log('PASS: roles, home visibility, catalogue filtering, money totals and CSV validation.');
+
+assert(t.home().includes('integration-card-photo'));
+s.session.role='owner';
+s.$=selector=>selector==='#iq-save-status'?s.status:null;s.status={textContent:'Guardada'};
+listeners.input[0]({target:{id:'iq-conditions'}});
+assert.equal(s.status.textContent,'Cambios pendientes de guardar.');
+console.log('PASS: photographic cards and unsaved quote feedback.');
