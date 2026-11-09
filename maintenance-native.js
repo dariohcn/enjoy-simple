@@ -42,17 +42,29 @@ function mountProforma(){
  const dialog=document.createElement('div');
  dialog.className='nm-inline-proforma';
  dialog.setAttribute('aria-label','Datos de la proforma');
+ const vehicleLabel=[filters.year==='Sin año indicado'?'':filters.year,filters.brand,filters.model,filters.code,filters.km?filters.km+' km':''].filter(Boolean).join(' · ');
  dialog.innerHTML=`<form>
-  <h2>Editar rubros de la proforma</h2>
-  <p>Agregá o quitá rubros en cada grupo. Los cambios se aplican a la proforma de este plan.</p>
-  <label>Cliente<input class="form-control" name="customer" required maxlength="120"></label>
-  <label>Chasis<input class="form-control" name="chassis" maxlength="40"></label>
-  <label>Placa<input class="form-control" name="plate" maxlength="20"></label>
-  <label>Elaborado por<input class="form-control" name="prepared" maxlength="100"></label>
-  <div class="nm-quote-lines"></div><output class="nm-quote-total" aria-live="polite"></output>
+  <table class="nm-form-header"><tbody>
+   <tr><th colspan="4">${safe(workshopName||'Taller de mecánica')}</th></tr>
+   <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
+   <tr><th scope="row">Vehículo</th><td colspan="3">${safe(vehicleLabel)}</td></tr>
+   <tr><th scope="row"><label for="nm-customer">Cliente</label></th><td colspan="3"><input id="nm-customer" class="form-control" name="customer" required maxlength="120"></td></tr>
+   <tr><th scope="row"><label for="nm-chassis">Chasis</label></th><td><input id="nm-chassis" class="form-control" name="chassis" maxlength="40"></td><th scope="row"><label for="nm-plate">Placa</label></th><td><input id="nm-plate" class="form-control" name="plate" maxlength="20"></td></tr>
+  </tbody></table>
+  <div class="nm-quote-lines"></div>
+  <div class="nm-quote-summary">
+   <table class="nm-form-totals"><tbody>
+    <tr><th scope="row">Total repuestos (sin IVA)</th><td data-total="parts"></td></tr>
+    <tr><th scope="row">Total mano de obra (sin IVA)</th><td data-total="labor"></td></tr>
+    <tr><th scope="row">Subtotal (REP + MO)</th><td data-total="subtotal"></td></tr>
+    <tr><th scope="row">Total incluido IVA de referencia (15%)</th><td data-total="total"></td></tr>
+   </tbody></table>
+  </div>
+  <p><strong>NOTA</strong><br>Las piezas y trabajos adicionales que se identifiquen durante el mantenimiento se cotizarán por separado.</p>
+  <label for="nm-prepared">Elaborado por<input id="nm-prepared" class="form-control" name="prepared" maxlength="100"></label>
+  <output class="nm-quote-status" aria-live="polite"></output>
   <div class="nm-actions"><button class="btn">Imprimir / guardar PDF</button></div>
  </form>`;
-
  const editor=dialog.querySelector('.nm-quote-lines');
  function readRows(){
   return [...editor.querySelectorAll('.nm-quote-row')].map(row=>{
@@ -65,28 +77,44 @@ function mountProforma(){
    result[8]=Number(row.closest('fieldset').dataset.kind);
    result[9]=price;
    result[12]=round(quantity*price);
+   result[16]=row.querySelector('[data-delivery]')?.value.trim()||'';
    return result;
   });
  }
  function refreshTotal(){
-  const valid=readRows().filter(r=>Number.isFinite(r[12]));
-  dialog.querySelector('output').textContent='Subtotal '+usd(totals(valid).subtotal)+' · Total de referencia '+usd(totals(valid).total);
+  const rows=readRows();
+  const summary=totals(rows.filter(r=>Number.isFinite(r[12])));
+  for(const cell of dialog.querySelectorAll('[data-total]'))cell.textContent=usd(summary[cell.dataset.total]);
+  editor.querySelectorAll('tbody').forEach(group=>{
+   [...group.rows].forEach((row,index)=>{row.querySelector('[data-index]').textContent=index+1;});
+  });
+  editor.querySelectorAll('[data-line-total]').forEach((cell,index)=>{
+   cell.textContent=Number.isFinite(rows[index][12])?usd(rows[index][12]):'—';
+  });
  }
  function addLine(fieldset,description='',quantity=1,price=0){
-  const row=document.createElement('div');
+  const parts=fieldset.dataset.kind==='0';
+  const row=document.createElement('tr');
   row.className='nm-quote-row';
-  row.innerHTML=`<label>Descripción<input class="form-control" data-description required maxlength="240" value="${safe(description)}"></label>
-   <label>${fieldset.dataset.kind==='1'?'Horas':'Cantidad'}<input class="form-control" type="number" min="0.000001" step="any" data-quantity required value="${safe(quantity)}"></label>
-   <label>Valor unitario USD<input class="form-control" type="number" min="0" step="any" data-price required value="${safe(price)}"></label>
-   <button type="button" class="btn secondary" data-remove>Quitar rubro</button>`;
+  row.innerHTML=`<td data-index></td>
+   <td><input class="form-control" aria-label="Descripción" data-description required maxlength="240" value="${safe(description)}"></td>
+   <td><input class="form-control" aria-label="${parts?'Cantidad':'Horas'}" type="number" min="0.000001" step="any" data-quantity required value="${safe(quantity)}"></td>
+   <td><input class="form-control" aria-label="Valor unitario USD" type="number" min="0" step="any" data-price required value="${safe(price)}"></td>
+   <td data-line-total></td>
+   ${parts?'<td><input class="form-control" aria-label="Entrega" data-delivery maxlength="60"></td>':''}
+   <td><button type="button" class="btn secondary" data-remove>Quitar rubro</button></td>`;
   row.querySelector('[data-remove]').onclick=()=>{row.remove();refreshTotal();};
-  fieldset.append(row);
+  fieldset.querySelector('tbody').append(row);
   return row;
  }
- for(const [kind,label] of [[1,'Mano de obra (MO)'],[0,'Repuestos e insumos (R)']]){
+ for(const [kind,label] of [[0,'REPUESTOS'],[1,'MANO DE OBRA']]){
   const fieldset=document.createElement('fieldset');
   fieldset.dataset.kind=kind;
-  fieldset.innerHTML=`<legend>${label}</legend><button type="button" class="btn secondary" data-add>Agregar rubro</button>`;
+  fieldset.innerHTML=`<legend>${label}</legend>
+   <div class="nm-form-scroll" role="region" aria-label="${label}" tabindex="0"><table class="nm-form-items">
+   <thead><tr><th scope="col">Ítem</th><th scope="col">Descripción</th><th scope="col">${kind?'Horas':'Cantidad'}</th><th scope="col">Valor unitario</th><th scope="col">Valor total</th>${kind?'':'<th scope="col">Entrega</th>'}<th scope="col">Acción</th></tr></thead>
+   <tbody></tbody></table></div>
+   <button type="button" class="btn secondary" data-add>Agregar rubro</button>`;
   editor.append(fieldset);
   for(const item of initialRows.filter(r=>num(r[8])===kind)){
    const quantity=num(item[7]??item[15])||1;
@@ -106,11 +134,11 @@ function mountProforma(){
   const summary=totals(rows);
   const fields=Object.fromEntries(new FormData(event.currentTarget));
   const vehicle=[filters.year==='Sin año indicado'?'':filters.year,filters.brand,filters.model,filters.code,filters.km?filters.km+' km':''].filter(Boolean).join(' · ');
-  const lines=(items)=>items.map((r,index)=>{
+  const lines=(items,parts)=>items.map((r,index)=>{
    const quantity=r[7]??r[15], amount=num(r[12]);
-   return `<tr><td>${index+1}</td><td>${safe(r[6])}</td><td>${safe(quantity)}</td><td>${num(quantity)?usd(r[9]):'—'}</td><td>${usd(amount)}</td></tr>`;
+   return `<tr><td>${index+1}</td><td>${safe(r[6])}</td><td>${safe(quantity)}</td><td>${num(quantity)?usd(r[9]):'—'}</td><td>${usd(amount)}</td>${parts?'<td>'+safe(r[16]||'—')+'</td>':''}</tr>`;
   }).join('');
-  const section=(title,items)=>`<table><thead><tr><th colspan="5">${title}</th></tr><tr><th>Ítem</th><th>Descripción</th><th>Cantidad</th><th>Valor unitario</th><th>Valor total</th></tr></thead><tbody>${lines(items)||'<tr><td colspan="5">Sin partidas</td></tr>'}</tbody></table>`;
+  const section=(title,items,parts=false)=>`<table><thead><tr><th colspan="${parts?6:5}">${title}</th></tr><tr><th>Ítem</th><th>Descripción</th><th>${parts?'Cantidad':'Horas'}</th><th>Valor unitario</th><th>Valor total</th>${parts?'<th>Entrega</th>':''}</tr></thead><tbody>${lines(items,parts)||`<tr><td colspan="${parts?6:5}">Sin partidas</td></tr>`}</tbody></table>`;
   const page=document.createElement('section');
   page.id='integration-print';
   page.className='nm-printed';
@@ -121,7 +149,7 @@ function mountProforma(){
    <tr><th>Cliente</th><td colspan="3">${safe(fields.customer)}</td></tr>
    <tr><th>Chasis</th><td>${safe(fields.chassis||'—')}</td><th>Placa</th><td>${safe(fields.plate||'—')}</td></tr>
   </tbody></table>
-  ${section('REPUESTOS',rows.filter(r=>num(r[8])!==1))}
+  ${section('REPUESTOS',rows.filter(r=>num(r[8])!==1),true)}
   ${section('MANO DE OBRA',rows.filter(r=>num(r[8])===1))}
   <table class="nm-print-totals"><tbody>
    <tr><th>Total repuestos (sin IVA)</th><td>${usd(summary.parts)}</td></tr>
