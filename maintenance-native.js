@@ -28,35 +28,86 @@ function body(){
  '<div class="nm-context"><div><span class="nm-eyebrow">PLAN SELECCIONADO</span><h2>'+safe(part?.[3]||'Sin partidas')+'</h2><p>'+safe(filters.brand)+' · '+safe(filters.model)+' · '+safe(filters.code)+'</p></div>'+(plans.length>1?option('plan',plans.map(x=>x[0]),'Variante de plan',id=>plans.find(x=>x[0]===id)[1]):'<span class="nm-tag">'+planRows.length+' partidas en el plan</span>')+'</div>'+
  '<div class="nm-layout"><div class="nm-drawer"><button class="btn secondary nm-drawer-tab" type="button" data-nm-totals aria-controls="nm-totals">Totales</button><aside id="nm-totals" class="nm-stats" aria-label="Totales de las partidas visibles">'+stat('Valor hora máximo',t.rate,'nm-slate','Tarifa de mano de obra')+stat('Mano de obra',t.labor,'nm-blue',rows.filter(r=>num(r[8])===1).length+' operaciones')+stat('Repuestos e insumos',t.parts,'nm-teal',rows.filter(r=>num(r[8])!==1).length+' partidas')+stat('Subtotal',t.subtotal,'nm-slate','Suma de las partidas visibles')+stat('Total de referencia',t.total,'nm-total','Incluye 15% del informe de origen')+'</aside></div>'+
  '<section class="nm-detail"><div class="nm-tablebar"><div><h2>Detalle del mantenimiento</h2><p><span id="nm-count">'+rows.length+'</span> partidas · USD · MO = Mano de obra · R = Repuestos e insumos</p></div><div class="nm-actions"><button class="btn" type="button" data-nm-proforma>Generar proforma</button><button class="btn secondary" data-nm-export '+(!rows.length?'disabled':'')+'>Descargar CSV</button></div></div><div class="nm-searchbar"><label>Buscar partida<input class="form-control" id="nm-search" value="'+safe(filters.search)+'" placeholder="Código o descripción"></label><label>Tipo<select class="form-select" data-nm-filter="type"><option value="">Todas las partidas</option><option value="labor" '+(filters.type==='labor'?'selected':'')+'>Mano de obra</option><option value="parts" '+(filters.type==='parts'?'selected':'')+'>Repuestos e insumos</option></select></label></div>'+
- '<div class="nm-table-scroll" tabindex="0" role="region" aria-label="Detalle del mantenimiento; desplace horizontalmente en pantallas pequeñas"><table class="nm-table"><thead><tr><th scope="col">Ítem / código</th><th scope="col">Descripción</th><th scope="col">Tipo</th><th scope="col" class="nm-number">Cantidad / horas</th><th scope="col" class="nm-number">Subtotal</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+safe(r[5])+'</td><td>'+safe(r[6])+'</td><td><span class="nm-kind '+(num(r[8])===1?'labor':'parts')+'">'+(num(r[8])===1?'MO':'R')+'</span></td><td class="nm-number">'+safe(r[7]??r[15])+'</td><td class="nm-number">'+usd(num(r[12]))+'</td></tr>').join('')+(!rows.length?'<tr><td colspan="5" class="nm-empty">No hay partidas que coincidan con la búsqueda.</td></tr>':'')+'</tbody><tfoot><tr><th colspan="4" scope="row">Subtotal de partidas visibles</th><td class="nm-number">'+usd(t.subtotal)+'</td></tr></tfoot></table></div><div class="nm-breakdown"><div><span>Composición del costo</span><div class="nm-bar" role="img" aria-label="Mano de obra '+pct+' por ciento; repuestos '+(100-pct)+' por ciento"><span style="width:'+pct+'%"></span></div><p><i class="labor"></i> Mano de obra '+pct+'% <i class="parts"></i> Repuestos '+(100-pct)+'%</p></div><div class="nm-tax"><span>Adicional del informe · 15%</span><strong>'+usd(t.extra)+'</strong></div></div></section></div>'+
+ '<div class="nm-table-scroll" tabindex="0" role="region" aria-label="Detalle del mantenimiento; desplace horizontalmente en pantallas pequeñas"><table class="nm-table"><thead><tr><th scope="col">Ítem / código</th><th scope="col">Descripción</th><th scope="col">Tipo</th><th scope="col" class="nm-number">Cantidad / horas</th><th scope="col" class="nm-number">Subtotal</th></tr></thead><tbody>'+[1,0].map(kind=>{const group=rows.filter(r=>num(r[8])===kind);return group.length?'<tr class="nm-group"><th colspan="5" scope="row">'+(kind?'Mano de obra (MO)':'Repuestos e insumos (R)')+'</th></tr>'+group.map(r=>'<tr><td>'+safe(r[5])+'</td><td>'+safe(r[6])+'</td><td><span class="nm-kind '+(num(r[8])===1?'labor':'parts')+'">'+(num(r[8])===1?'MO':'R')+'</span></td><td class="nm-number">'+safe(r[7]??r[15])+'</td><td class="nm-number">'+usd(num(r[12]))+'</td></tr>').join(''):'';}).join('')+(!rows.length?'<tr><td colspan="5" class="nm-empty">No hay partidas que coincidan con la búsqueda.</td></tr>':'')+'</tbody><tfoot><tr><th colspan="4" scope="row">Subtotal de partidas visibles</th><td class="nm-number">'+usd(t.subtotal)+'</td></tr></tfoot></table></div><div class="nm-breakdown"><div><span>Composición del costo</span><div class="nm-bar" role="img" aria-label="Mano de obra '+pct+' por ciento; repuestos '+(100-pct)+' por ciento"><span style="width:'+pct+'%"></span></div><p><i class="labor"></i> Mano de obra '+pct+'% <i class="parts"></i> Repuestos '+(100-pct)+'%</p></div><div class="nm-tax"><span>Adicional del informe · 15%</span><strong>'+usd(t.extra)+'</strong></div></div></section></div>'+
  '<p class="nm-footnote">Tarifario de referencia del informe proporcionado · última actualización de origen: 26/11/2025. Se consulta una sola versión y un solo plan para evitar sumar vehículos distintos. El total conserva el 15% de la referencia; confirme condiciones e impuestos antes de emitir una proforma.</p>';
 }
 
 function openProforma(){
  const rows=selection().rows;
  if(!rows.length)return;
- const summary=totals(rows);
+ const initialRows=rows;
  const dialog=document.createElement('dialog');
  dialog.className='nm-proforma-dialog';
  dialog.setAttribute('aria-label','Datos de la proforma');
  dialog.innerHTML=`<form method="dialog">
   <h2>Generar proforma</h2>
-  <p>Se incluirán todas las partidas del plan seleccionado.</p>
+  <p>Editá las partidas de esta proforma antes de imprimir.</p>
   <label>Cliente<input class="form-control" name="customer" required maxlength="120"></label>
   <label>Chasis<input class="form-control" name="chassis" maxlength="40"></label>
   <label>Placa<input class="form-control" name="plate" maxlength="20"></label>
   <label>Elaborado por<input class="form-control" name="prepared" maxlength="100"></label>
+  <div class="nm-quote-lines"></div><output class="nm-quote-total" aria-live="polite"></output>
   <div class="nm-actions"><button type="button" class="btn secondary" data-close>Cancelar</button><button class="btn">Imprimir / guardar PDF</button></div>
  </form>`;
+
+ const editor=dialog.querySelector('.nm-quote-lines');
+ function readRows(){
+  return [...editor.querySelectorAll('.nm-quote-row')].map(row=>{
+   const description=row.querySelector('[data-description]').value.trim();
+   const quantity=row.querySelector('[data-quantity]').valueAsNumber;
+   const price=row.querySelector('[data-price]').valueAsNumber;
+   const result=[];
+   result[6]=description;
+   result[7]=quantity;
+   result[8]=Number(row.closest('fieldset').dataset.kind);
+   result[9]=price;
+   result[12]=round(quantity*price);
+   return result;
+  });
+ }
+ function refreshTotal(){
+  const valid=readRows().filter(r=>Number.isFinite(r[12]));
+  dialog.querySelector('output').textContent='Subtotal '+usd(totals(valid).subtotal)+' · Total de referencia '+usd(totals(valid).total);
+ }
+ function addLine(fieldset,description='',quantity=1,price=0){
+  const row=document.createElement('div');
+  row.className='nm-quote-row';
+  row.innerHTML=`<label>Descripción<input class="form-control" data-description required maxlength="240" value="${safe(description)}"></label>
+   <label>${fieldset.dataset.kind==='1'?'Horas':'Cantidad'}<input class="form-control" type="number" min="0.000001" step="any" data-quantity required value="${safe(quantity)}"></label>
+   <label>Valor unitario USD<input class="form-control" type="number" min="0" step="any" data-price required value="${safe(price)}"></label>
+   <button type="button" class="btn secondary" data-remove>Quitar</button>`;
+  row.querySelector('[data-remove]').onclick=()=>{row.remove();refreshTotal();};
+  fieldset.insertBefore(row,fieldset.querySelector('[data-add]'));
+  return row;
+ }
+ for(const [kind,label] of [[1,'Mano de obra (MO)'],[0,'Repuestos e insumos (R)']]){
+  const fieldset=document.createElement('fieldset');
+  fieldset.dataset.kind=kind;
+  fieldset.innerHTML=`<legend>${label}</legend><button type="button" class="btn secondary" data-add>Agregar partida</button>`;
+  editor.append(fieldset);
+  for(const item of initialRows.filter(r=>num(r[8])===kind)){
+   const quantity=num(item[7]??item[15])||1;
+   addLine(fieldset,item[6],quantity,Number((num(item[12])/quantity).toFixed(8)));
+  }
+  fieldset.querySelector('[data-add]').onclick=()=>{addLine(fieldset).querySelector('[data-description]').focus();refreshTotal();};
+ }
+ editor.addEventListener('input',refreshTotal);
+ refreshTotal();
  dialog.querySelector('[data-close]').onclick=()=>dialog.close();
  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
  dialog.querySelector('form').onsubmit=event=>{
   event.preventDefault();
+  const rows=readRows();
+  if(!rows.length||rows.some(r=>!r[6]||!Number.isFinite(r[12]))){
+   dialog.querySelector('output').textContent='Agregá al menos una partida y completá su descripción, cantidad y valor.';
+   return;
+  }
+  const summary=totals(rows);
   const fields=Object.fromEntries(new FormData(event.currentTarget));
   const vehicle=[filters.year==='Sin año indicado'?'':filters.year,filters.brand,filters.model,filters.code,filters.km?filters.km+' km':''].filter(Boolean).join(' · ');
   const lines=(items)=>items.map((r,index)=>{
    const quantity=r[7]??r[15], amount=num(r[12]);
-   return `<tr><td>${index+1}</td><td>${safe(r[6])}</td><td>${safe(quantity)}</td><td>${num(quantity)?usd(amount/num(quantity)):'—'}</td><td>${usd(amount)}</td></tr>`;
+   return `<tr><td>${index+1}</td><td>${safe(r[6])}</td><td>${safe(quantity)}</td><td>${num(quantity)?usd(r[9]):'—'}</td><td>${usd(amount)}</td></tr>`;
   }).join('');
   const section=(title,items)=>`<table><thead><tr><th colspan="5">${title}</th></tr><tr><th>Ítem</th><th>Descripción</th><th>Cantidad</th><th>Valor unitario</th><th>Valor total</th></tr></thead><tbody>${lines(items)||'<tr><td colspan="5">Sin partidas</td></tr>'}</tbody></table>`;
   const page=document.createElement('section');

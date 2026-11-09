@@ -73,3 +73,14 @@
  #integration-print.nm-printed .nm-print-totals th{text-align:left}
  #integration-print.nm-printed .nm-print-prepared{margin-top:22px}
 }
+
+.native-maintenance .nm-table .nm-group th{background:#e5eff7;color:#173d55;font-weight:700}
+.nm-proforma-dialog{width:min(880px,calc(100% - 24px));max-height:90dvh;overflow:auto}
+.nm-quote-lines,.nm-quote-lines fieldset{display:grid;gap:10px;min-width:0}
+.nm-quote-lines fieldset{border:1px solid #dce5ec;border-radius:8px;padding:12px}
+.nm-quote-lines legend{font-weight:700;color:#173d55}
+.nm-quote-lines [data-add]{justify-self:start}
+.nm-quote-row{display:grid;grid-template-columns:minmax(0,1fr) 90px 135px auto;gap:8px;align-items:end}
+.nm-quote-row input{width:100%;min-width:0}
+.nm-quote-total{font-weight:700}
+@media(max-width:650px){.nm-quote-row{grid-template-columns:repeat(2,minmax(0,1fr));border-bottom:1px solid #dce5ec;padding-bottom:10px}.nm-quote-row label:first-child{grid-column:1/-1}.nm-quote-row button{justify-self:start}}
