@@ -1,4 +1,15 @@
-alter table enjoy.user_allowed_ips add column approved_by uuid;
+create table enjoy.admin_user_ips (
+ user_id uuid primary key references auth.users(id) on delete cascade,
+ ip1 inet,
+ ip2 inet,
+ approved_by uuid not null,
+ updated_at timestamptz not null default now(),
+ check (ip1 is null or masklen(ip1) = case family(ip1) when 4 then 32 else 128 end),
+ check (ip2 is null or masklen(ip2) = case family(ip2) when 4 then 32 else 128 end),
+ check (ip1 is null or ip2 is null or ip1 <> ip2)
+);
+alter table enjoy.admin_user_ips enable row level security;
+revoke all on enjoy.admin_user_ips from public, anon, authenticated;
 
 create or replace function enjoy.assert_allowed_ip() returns void
 language plpgsql volatile set search_path = '' as $$
@@ -21,7 +32,7 @@ begin
  if client_ip is null or masklen(client_ip) <> (case family(client_ip) when 4 then 32 else 128 end) then
   raise exception 'No se pudo verificar la IP de la conexión.' using errcode = '42501';
  end if;
- if not exists(select 1 from enjoy.user_allowed_ips where user_id = caller and ip = client_ip and approved_by is not null) then
+ if not exists(select 1 from enjoy.admin_user_ips where user_id = caller and client_ip in (ip1, ip2)) then
   raise exception 'Esta IP no está autorizada. Pida al administrador que registre la IP pública de su conexión.' using errcode = '42501';
  end if;
 end;
@@ -61,14 +72,12 @@ begin
    if address = any(addresses) then raise exception 'Las IP deben ser distintas.' using errcode = '22023'; end if;
    addresses := array_append(addresses,address);
   end loop;
-  perform pg_advisory_xact_lock(hashtextextended(target_user::text, 713298));
-  delete from enjoy.user_allowed_ips where user_id = target_user;
-  insert into enjoy.user_allowed_ips(user_id,ip,slot,approved_by)
-   select target_user,entry.ip,entry.slot::smallint,caller
-   from unnest(addresses) with ordinality as entry(ip,slot);
+  insert into enjoy.admin_user_ips(user_id,ip1,ip2,approved_by)
+  values(target_user,addresses[1],addresses[2],caller)
+  on conflict(user_id) do update set ip1=excluded.ip1,ip2=excluded.ip2,approved_by=excluded.approved_by,updated_at=now();
  end if;
- return coalesce((select jsonb_agg(host(ip) order by slot) from enjoy.user_allowed_ips
-  where user_id = target_user and approved_by is not null),'[]'::jsonb);
+ return coalesce((select to_jsonb(array_remove(array[host(ip1),host(ip2)],null))
+  from enjoy.admin_user_ips where user_id = target_user),'[]'::jsonb);
 end;
 $$;
 revoke execute on function enjoy.manage_user_ips(text,jsonb) from public, anon, authenticated;
