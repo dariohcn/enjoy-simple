@@ -116,3 +116,10 @@
 .nm-form-totals td{text-align:right;white-space:nowrap}
 .nm-form-totals tr:last-child th,.nm-form-totals tr:last-child td{background:#e5eff7;font-weight:700}
 .nm-quote-status:empty{display:none}
+
+.nm-plan-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.nm-plan-toolbar h2{font-size:17px}
+.nm-plan-toolbar p{font-size:13px;color:#526b7b;margin-top:4px}
+.nm-inline-proforma[data-editing="false"] [data-add],
+.nm-inline-proforma[data-editing="false"] .nm-form-items tr>:last-child{display:none}
+.nm-inline-proforma .nm-form-items input[readonly]{border-color:transparent;background:transparent;box-shadow:none}

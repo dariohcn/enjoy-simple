@@ -27,7 +27,7 @@ function body(){
  return '<div class="nm-filterbar">'+option('year',choices.year,'Año')+option('brand',choices.brand,'Marca')+option('model',choices.model,'Modelo')+option('code',choices.code,'Versión')+option('km',choices.km,'Kilometraje',v=>v?Number(v).toLocaleString('es-EC')+' km':'Sin intervalo')+'<button class="btn secondary" data-nm-reset>Restablecer</button></div>'+
  '<div class="nm-context"><div><span class="nm-eyebrow">PLAN SELECCIONADO</span><h2>'+safe(part?.[3]||'Sin partidas')+'</h2><p>'+safe(filters.brand)+' · '+safe(filters.model)+' · '+safe(filters.code)+'</p></div>'+(plans.length>1?option('plan',plans.map(x=>x[0]),'Variante de plan',id=>plans.find(x=>x[0]===id)[1]):'<span class="nm-tag">'+planRows.length+' partidas en el plan</span>')+'</div>'+
  '<section id="nm-proforma-editor" aria-label="Rubros editables de la proforma"></section><div class="nm-layout"><div class="nm-drawer"><button class="btn secondary nm-drawer-tab" type="button" data-nm-totals aria-controls="nm-totals">Totales</button><aside id="nm-totals" class="nm-stats" aria-label="Totales de las partidas visibles">'+stat('Valor hora máximo',t.rate,'nm-slate','Tarifa de mano de obra')+stat('Mano de obra',t.labor,'nm-blue',rows.filter(r=>num(r[8])===1).length+' operaciones')+stat('Repuestos e insumos',t.parts,'nm-teal',rows.filter(r=>num(r[8])!==1).length+' partidas')+stat('Subtotal',t.subtotal,'nm-slate','Suma de las partidas visibles')+stat('Total de referencia',t.total,'nm-total','Incluye 15% del informe de origen')+'</aside></div>'+
- '<section class="nm-detail"><div class="nm-tablebar"><div><h2>Detalle del mantenimiento</h2><p><span id="nm-count">'+rows.length+'</span> partidas · USD · MO = Mano de obra · R = Repuestos e insumos</p></div><div class="nm-actions"><button class="btn" type="button" data-nm-proforma>Ir a rubros editables</button><button class="btn secondary" data-nm-export '+(!rows.length?'disabled':'')+'>Descargar CSV</button></div></div><div class="nm-searchbar"><label>Buscar partida<input class="form-control" id="nm-search" value="'+safe(filters.search)+'" placeholder="Código o descripción"></label><label>Tipo<select class="form-select" data-nm-filter="type"><option value="">Todas las partidas</option><option value="labor" '+(filters.type==='labor'?'selected':'')+'>Mano de obra</option><option value="parts" '+(filters.type==='parts'?'selected':'')+'>Repuestos e insumos</option></select></label></div>'+
+ '<section class="nm-detail"><div class="nm-tablebar"><div><h2>Detalle del mantenimiento</h2><p><span id="nm-count">'+rows.length+'</span> partidas · USD · MO = Mano de obra · R = Repuestos e insumos</p></div><div class="nm-actions"><button class="btn" type="button" data-nm-proforma>Ver plan generado</button><button class="btn secondary" data-nm-export '+(!rows.length?'disabled':'')+'>Descargar CSV</button></div></div><div class="nm-searchbar"><label>Buscar partida<input class="form-control" id="nm-search" value="'+safe(filters.search)+'" placeholder="Código o descripción"></label><label>Tipo<select class="form-select" data-nm-filter="type"><option value="">Todas las partidas</option><option value="labor" '+(filters.type==='labor'?'selected':'')+'>Mano de obra</option><option value="parts" '+(filters.type==='parts'?'selected':'')+'>Repuestos e insumos</option></select></label></div>'+
  '<div class="nm-table-scroll" tabindex="0" role="region" aria-label="Detalle del mantenimiento; desplace horizontalmente en pantallas pequeñas"><table class="nm-table"><thead><tr><th scope="col">Ítem / código</th><th scope="col">Descripción</th><th scope="col">Tipo</th><th scope="col" class="nm-number">Cantidad / horas</th><th scope="col" class="nm-number">Subtotal</th></tr></thead><tbody>'+[1,0].map(kind=>{const group=rows.filter(r=>num(r[8])===kind);return group.length?'<tr class="nm-group"><th colspan="5" scope="row">'+(kind?'Mano de obra (MO)':'Repuestos e insumos (R)')+'</th></tr>'+group.map(r=>'<tr><td>'+safe(r[5])+'</td><td>'+safe(r[6])+'</td><td><span class="nm-kind '+(num(r[8])===1?'labor':'parts')+'">'+(num(r[8])===1?'MO':'R')+'</span></td><td class="nm-number">'+safe(r[7]??r[15])+'</td><td class="nm-number">'+usd(num(r[12]))+'</td></tr>').join(''):'';}).join('')+(!rows.length?'<tr><td colspan="5" class="nm-empty">No hay partidas que coincidan con la búsqueda.</td></tr>':'')+'</tbody><tfoot><tr><th colspan="4" scope="row">Subtotal de partidas visibles</th><td class="nm-number">'+usd(t.subtotal)+'</td></tr></tfoot></table></div><div class="nm-breakdown"><div><span>Composición del costo</span><div class="nm-bar" role="img" aria-label="Mano de obra '+pct+' por ciento; repuestos '+(100-pct)+' por ciento"><span style="width:'+pct+'%"></span></div><p><i class="labor"></i> Mano de obra '+pct+'% <i class="parts"></i> Repuestos '+(100-pct)+'%</p></div><div class="nm-tax"><span>Adicional del informe · 15%</span><strong>'+usd(t.extra)+'</strong></div></div></section></div>'+
  '<p class="nm-footnote">Tarifario de referencia del informe proporcionado · última actualización de origen: 26/11/2025. Se consulta una sola versión y un solo plan para evitar sumar vehículos distintos. El total conserva el 15% de la referencia; confirme condiciones e impuestos antes de emitir una proforma.</p>';
 }
@@ -41,9 +41,14 @@ function mountProforma(){
  const initialRows=rows;
  const dialog=document.createElement('div');
  dialog.className='nm-inline-proforma';
+ dialog.dataset.editing='false';
  dialog.setAttribute('aria-label','Datos de la proforma');
  const vehicleLabel=[filters.year==='Sin año indicado'?'':filters.year,filters.brand,filters.model,filters.code,filters.km?filters.km+' km':''].filter(Boolean).join(' · ');
  dialog.innerHTML=`<form>
+  <div class="nm-plan-toolbar">
+   <div><h2>Plan de mantenimiento generado</h2><p data-plan-mode>Plan estándar cargado para el vehículo y kilometraje seleccionados.</p></div>
+   <button type="button" class="btn" data-edit-plan aria-pressed="false">Modificar plan</button>
+  </div>
   <table class="nm-form-header"><tbody>
    <tr><th colspan="4">${safe(workshopName||'Taller de mecánica')}</th></tr>
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
@@ -76,6 +81,7 @@ function mountProforma(){
    result[7]=quantity;
    result[8]=Number(row.closest('fieldset').dataset.kind);
    result[9]=price;
+   result[10]=result[8]===1?price:0;
    result[12]=round(quantity*price);
    result[16]=row.querySelector('[data-delivery]')?.value.trim()||'';
    return result;
@@ -84,6 +90,11 @@ function mountProforma(){
  function refreshTotal(){
   const rows=readRows();
   const summary=totals(rows.filter(r=>Number.isFinite(r[12])));
+  const panel=document.querySelector('#nm-totals');
+  for(const [i,key] of ['rate','labor','parts','subtotal','total'].entries()){
+   const value=panel?.querySelectorAll('.nm-stat strong')[i];
+   if(value)value.textContent=usd(summary[key]);
+  }
   for(const cell of dialog.querySelectorAll('[data-total]'))cell.textContent=usd(summary[cell.dataset.total]);
   editor.querySelectorAll('tbody').forEach(group=>{
    [...group.rows].forEach((row,index)=>{row.querySelector('[data-index]').textContent=index+1;});
@@ -104,6 +115,7 @@ function mountProforma(){
    ${parts?'<td><input class="form-control" aria-label="Entrega" data-delivery maxlength="60"></td>':''}
    <td><button type="button" class="btn secondary" data-remove>Quitar rubro</button></td>`;
   row.querySelector('[data-remove]').onclick=()=>{row.remove();refreshTotal();};
+  for(const input of row.querySelectorAll('input'))input.readOnly=dialog.dataset.editing!=='true';
   fieldset.querySelector('tbody').append(row);
   return row;
  }
@@ -122,6 +134,16 @@ function mountProforma(){
   }
   fieldset.querySelector('[data-add]').onclick=()=>{addLine(fieldset).querySelector('[data-description]').focus();refreshTotal();};
  }
+ const editButton=dialog.querySelector('[data-edit-plan]');
+ editButton.onclick=()=>{
+  const editing=dialog.dataset.editing!=='true';
+  dialog.dataset.editing=String(editing);
+  editButton.setAttribute('aria-pressed',String(editing));
+  editButton.textContent=editing?'Terminar edición':'Modificar plan';
+  dialog.querySelector('[data-plan-mode]').textContent=editing?'Agregá, quitá o ajustá las partidas de esta proforma.':'Revisá el plan generado antes de imprimir.';
+  for(const input of editor.querySelectorAll('input'))input.readOnly=!editing;
+ };
+ host.addEventListener('nm-refresh-totals',refreshTotal);
  editor.addEventListener('input',refreshTotal);
  refreshTotal();
  dialog.querySelector('form').onsubmit=event=>{
@@ -173,7 +195,10 @@ function paint(){
  const previous=el.querySelector('#nm-proforma-editor');
  el.innerHTML=body();
  const next=el.querySelector('#nm-proforma-editor');
- if(next&&previous?.firstElementChild&&previous.dataset.planKey===planKey())next.replaceWith(previous);
+ if(next&&previous?.firstElementChild&&previous.dataset.planKey===planKey()){
+  next.replaceWith(previous);
+  previous.dispatchEvent(new Event('nm-refresh-totals'));
+ }
  mountProforma();
 }
 async function load(){
