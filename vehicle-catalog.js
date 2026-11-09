@@ -12,8 +12,10 @@ function excelReader(){
  if(!excelScript)excelScript=new Promise((resolve,reject)=>{
   const script=document.createElement('script');
   script.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
-  script.onload=()=>resolve(window.XLSX);
-  script.onerror=()=>{excelScript=null;script.remove();reject(Error('No se pudo cargar el lector de Excel. Reintentá o usá CSV.'));};
+  const failed=()=>{clearTimeout(timeout);excelScript=null;script.remove();reject(Error('No se pudo cargar el lector de Excel. Reintentá o usá CSV.'));};
+  const timeout=setTimeout(failed,15000);
+  script.onload=()=>{clearTimeout(timeout);resolve(window.XLSX);};
+  script.onerror=failed;
   document.head.append(script);
  });
  return excelScript;
@@ -58,15 +60,48 @@ function parseRows(rows){
   return item;
  });
 }
-async function readFile(file){
+function parseMatrix(rows){
+ const clean=value=>String(value??'').trim();
+ const headers=(rows[0]||[]).map(value=>clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase());
+ const column=name=>headers.findIndex(header=>header===name||header.startsWith(name+' ('));
+ const indexes=['MODELO','KILOMETRAJE','TIPO','NP','DESCRIPCION','CANTIDAD','VUNIT'].map(column);
+ if(indexes.some(index=>index<0))throw Error('La hoja MATRIZ no tiene los encabezados de mantenimiento esperados.');
+ if(rows.length>20001)throw Error('La hoja supera el máximo de 20.000 partidas.');
+ const items=[],omissions=[];
+ const number=value=>clean(value)===''?NaN:Number(clean(value).replace(',','.'));
+ for(let i=1;i<rows.length;i++){
+  const row=rows[i]||[];
+  if(!row.some(value=>clean(value)))continue;
+  const [model,kmText,type,code,description,quantity,price]=indexes.map(index=>row[index]);
+  const km=number(kmText)*(headers[indexes[1]].includes('1000')?1000:1);
+  const item={anio:null,modelo:clean(model),version:'Sin versión indicada',km,codigo:clean(code),
+   tipo:clean(type).toUpperCase()==='REP'?'R':clean(type).toUpperCase(),descripcion:clean(description),cantidad:number(quantity),precio:number(price)};
+  const issue=!Number.isFinite(item.precio)||item.precio<0||item.precio>1000000?'precio inválido':
+   !(item.cantidad>0&&item.cantidad<=100000)?'cantidad inválida':
+   !item.modelo||item.modelo.length>120||!item.codigo||item.codigo.length>80||!item.descripcion||item.descripcion.length>2500||
+   !Number.isInteger(km)||km<0||km>2000000||!['MO','R'].includes(item.tipo)?'datos incompletos o fuera de rango':'';
+  if(issue)omissions.push('Fila '+(i+1)+': '+issue);
+  else items.push(item);
+ }
+ if(!items.length)throw Error('La hoja MATRIZ no contiene partidas válidas.');
+ return {items,omissions,sheet:'MATRIZ'};
+}
+async function readFile(file,stage,workbook,sheetName){
  if(!file||file.size>5*1024*1024)throw Error('Elegí un archivo de hasta 5 MB.');
- if(/\.csv$/i.test(file.name))return parseRows(csvRows(await file.text()));
+ if(/\.csv$/i.test(file.name)){
+  const rows=csvRows(await file.text());
+  stage(2,'Validando filas del CSV…');
+  return {items:parseRows(rows),omissions:[],sheet:'CSV'};
+ }
  if(!/\.xlsx?$/i.test(file.name))throw Error('Usá un archivo Excel (.xlsx o .xls) o CSV.');
- const xlsx=await excelReader();
- const book=xlsx.read(await file.arrayBuffer(),{type:'array',sheetRows:2002});
- const sheet=book.Sheets[book.SheetNames[0]];
- if(!sheet)throw Error('El archivo no contiene una hoja con datos.');
- return parseRows(xlsx.utils.sheet_to_json(sheet,{header:1,defval:'',blankrows:false}));
+ if(!workbook||!sheetName)throw Error('Elegí la hoja de Excel que querés importar.');
+ const sheet=workbook.book.Sheets[sheetName];
+ if(!sheet)throw Error('La hoja seleccionada no está disponible.');
+ const matrix=sheetName.trim().toUpperCase()==='MATRIZ';
+ stage(2,'Validando hoja '+sheetName+'…');
+ await new Promise(resolve=>setTimeout(resolve,0));
+ const rows=workbook.xlsx.utils.sheet_to_json(sheet,{header:1,defval:'',blankrows:matrix});
+ return matrix?parseMatrix(rows):{items:parseRows(rows),omissions:[],sheet:sheetName};
 }
 async function wikiJson(base,params,signal){
  const query=new URLSearchParams({...params,format:'json',origin:'*'});
@@ -103,9 +138,9 @@ function adminView(){
  '<p data-brand-status role="status"></p><button class="btn">Guardar marca</button></form>'+
  '<form data-catalog-form><h2>Cargar catálogo por marca</h2><label>Marca<select name="brand" class="form-select" required></select></label>'+scopeFields+
  '<label>Archivo Excel o CSV<input class="form-control" name="file" type="file" accept=".xlsx,.xls,.csv" required></label>'+
- '<p>Usá la primera hoja. Cada carga actualiza el catálogo activo de la marca, el tipo y la región seleccionados.</p>'+
+ '<label data-sheet-picker hidden>Hoja de Excel<select name="sheet" class="form-select"></select></label><p>Seleccioná la hoja que contiene las partidas. Cada carga actualiza el catálogo activo de la marca, el tipo y la región seleccionados.</p>'+
  '<a download="plantilla-catalogo.csv" href="data:text/csv;charset=utf-8,'+encodeURIComponent(columns.join(';')+'\r\n')+'">Descargar plantilla CSV</a>'+
- '<p data-catalog-status role="status"></p><button class="btn">Validar e importar</button></form></div>'+
+ '<progress data-import-progress max="4" value="0" aria-label="Avance de la importación" hidden></progress><p data-catalog-status role="status" aria-live="polite"></p><button class="btn">Validar e importar</button><button type="button" class="btn secondary" data-import-confirm hidden>Importar partidas válidas</button></form></div>'+
  '<h2>Catálogos activos por marca</h2><div data-catalog-index role="status">Cargando…</div></section>';
 }
 function wireAdmin(){
@@ -162,18 +197,70 @@ function wireAdmin(){
   }catch(e){brandStatus.textContent=e.message;}finally{button.disabled=false;}
  });
  importForm.elements.vehicle_type.addEventListener('change',()=>currentScope(importForm));
- importForm.addEventListener('submit',async event=>{
-  event.preventDefault();
-  const button=importForm.querySelector('button');button.disabled=true;
-  importStatus.textContent='Validando el archivo…';
+
+ const progress=importForm.querySelector('[data-import-progress]');
+ const confirm=importForm.querySelector('[data-import-confirm]');
+ const submit=importForm.querySelector('button[type="submit"],button:not([type])');
+ const sheetField=importForm.elements.sheet, sheetPicker=sheetField.closest('label');
+ let pendingImport=null,workbook=null,fileVersion=0;
+ function stage(step,message){
+  progress.hidden=false;progress.value=step;importStatus.textContent=message;
+ }
+ async function publish(payload,omissions){
+  submit.disabled=true;confirm.disabled=true;
+  stage(3,'Guardando '+payload.items.length.toLocaleString('es-EC')+' partidas en Supabase…');
   try{
-   const file=importForm.elements.file.files[0],scope=currentScope(importForm);
-   const items=await readFile(file);
-   const result=await api('vehicle-catalog-import',{...scope,brand:importForm.elements.brand.value,filename:file.name,items});
-   importStatus.textContent=result.imported+' partidas publicadas en el catálogo seleccionado.';
-   importForm.elements.file.value='';
-   await refreshIndex();
-  }catch(e){importStatus.textContent=e.message;}finally{button.disabled=false;}
+   const result=await api('vehicle-catalog-import',payload);
+   stage(4,'Importación completada: '+result.imported.toLocaleString('es-EC')+' partidas publicadas en '+payload.brand+' · '+typeLabel[payload.vehicle_type]+' · '+zoneLabel[payload.region]+'.'+(omissions.length?' Omitidas: '+omissions.length+'.':''));
+   pendingImport=null;confirm.hidden=true;importForm.elements.file.value='';workbook=null;sheetPicker.hidden=true;sheetField.required=false;sheetField.replaceChildren();
+   await refreshIndex().catch(()=>{importStatus.textContent+=' No se pudo actualizar la tabla de catálogos.';});
+  }catch(e){stage(3,'No se pudo confirmar la importación: '+e.message);}
+  finally{submit.disabled=false;confirm.disabled=false;}
+ }
+ importForm.elements.file.addEventListener('change',async()=>{
+  const token=++fileVersion;
+  const file=importForm.elements.file.files[0];
+  workbook=null;sheetPicker.hidden=true;sheetField.required=false;sheetField.replaceChildren();submit.disabled=false;
+  if(!file||!/\.xlsx?$/i.test(file.name))return;
+  submit.disabled=true;
+  stage(1,'Leyendo las hojas del Excel…');
+  try{
+   if(file.size>5*1024*1024)throw Error('Elegí un archivo de hasta 5 MB.');
+   const xlsx=await excelReader();
+   const book=xlsx.read(await file.arrayBuffer(),{type:'array',sheetRows:20002});
+   if(token!==fileVersion||!host.isConnected)return;
+   if(!book.SheetNames.length)throw Error('El archivo no contiene hojas.');
+   workbook={xlsx,book};
+   sheetField.replaceChildren(...book.SheetNames.map(name=>new Option(name,name)));
+   sheetField.value=book.SheetNames.find(name=>name.trim().toUpperCase()==='MATRIZ')||book.SheetNames[0];
+   sheetPicker.hidden=false;sheetField.required=true;
+   stage(1,'Hojas detectadas: '+book.SheetNames.length+'. Seleccioná una hoja y pulsá Validar e importar.');
+  }catch(e){if(token===fileVersion)stage(1,'No se pudo leer el Excel: '+e.message);}
+  finally{if(token===fileVersion)submit.disabled=false;}
+ });
+ importForm.addEventListener('change',event=>{
+  pendingImport=null;confirm.hidden=true;
+  if(submit.disabled)return;
+  progress.hidden=true;
+  importStatus.textContent=importForm.elements.file.files[0]?(workbook?'Hoja seleccionada: '+sheetField.value+'. ':'Archivo seleccionado. ')+'Pulsá Validar e importar.':'';
+ });
+ confirm.addEventListener('click',()=>{if(pendingImport)publish(pendingImport.payload,pendingImport.omissions);});
+ importForm.addEventListener('submit',async event=>{
+  event.preventDefault();submit.disabled=true;confirm.hidden=true;pendingImport=null;
+  stage(1,'Leyendo el archivo…');
+  try{
+   const file=importForm.elements.file.files[0],scope=currentScope(importForm),brand=importForm.elements.brand.value;
+   await new Promise(resolve=>setTimeout(resolve,0));
+   const {items,omissions,sheet}=await readFile(file,stage,workbook,sheetField.value);
+   const payload={...scope,brand,filename:file.name,items};
+   if(omissions.length){
+    pendingImport={payload,omissions};
+    stage(2,brand+' · '+sheet+': '+items.length.toLocaleString('es-EC')+' partidas válidas y '+omissions.length+' con errores. '+omissions.slice(0,8).join(' · ')+'. Todavía no se ha publicado el catálogo.');
+    confirm.textContent='Importar '+items.length.toLocaleString('es-EC')+' partidas válidas';
+    confirm.hidden=false;
+   }else await publish(payload,omissions);
+  }catch(e){stage(progress.value,'Importación detenida: '+e.message);}
+  finally{submit.disabled=false;}
  });
  refreshIndex().catch(e=>{host.querySelector('[data-catalog-index]').textContent=e.message;});
 }
@@ -187,7 +274,7 @@ function rowsForPlan(items,brand){
  return items.map(item=>{
   const kind=item.tipo==='MO'?1:0;
   const total=Math.round(item.cantidad*item.precio*100)/100;
-  return [brand,item.modelo,item.version,'Mantenimiento '+item.km.toLocaleString('es-EC')+' km',item.km,item.codigo,item.descripcion,item.cantidad,kind,item.precio,kind?item.precio:0,0,total,JSON.stringify([item.anio,item.modelo,item.version,item.km]),null,item.cantidad,item.anio];
+  return [brand,item.modelo,item.version,'Mantenimiento '+item.km.toLocaleString('es-EC')+' km',item.km,item.codigo,item.descripcion,item.cantidad,kind,item.precio,kind?item.precio:0,0,total,JSON.stringify([item.anio,item.modelo,item.version,item.km]),null,item.cantidad,item.anio??'Sin año indicado'];
  });
 }
 function wirePlan(options){
@@ -276,16 +363,39 @@ function wireDashboard(){
  document.querySelector('#vehicle-dashboard-days')?.addEventListener('change',event=>{dashboardDays=Number(event.target.value);render();});
  document.querySelector('#vehicle-dashboard-state')?.addEventListener('change',event=>{dashboardState=event.target.value;render();});
 }
+
+const reportStates={scheduled:'Programadas',arrived:'En taller',done:'Completadas',cancelled:'Canceladas'};
+let networkReportState='';
 function arrangeNetworkSummary(){
- const metrics=document.querySelector('#contenido .network-metrics');
- const charts=document.querySelector('#contenido .network-charts');
- if(!metrics||!charts||metrics.parentElement.classList.contains('vehicle-summary-layout'))return;
- const layout=document.createElement('div');
+ const root=document.querySelector('#contenido');
+ const metrics=root?.querySelector('.live-stats,.network-metrics');
+ const charts=root?.querySelector('.live-chart-grid,.network-charts');
+ if(!metrics||!charts||!data.monitor||root.querySelector('.vehicle-network-layout'))return;
+ const heading=root.querySelector('.live-title h1,.network-heading h1');
+ if(heading)heading.textContent='Panel de control de la red';
+ const layout=document.createElement('div'),detail=document.createElement('div');
  layout.className='vehicle-summary-layout vehicle-network-layout';
+ detail.className='vehicle-network-detail';
  metrics.before(layout);
- layout.append(metrics,charts);
+ layout.append(metrics,detail);
+ detail.append(charts);
+ const summary=summarizeNetwork(data.workshops,data.monitor,{workshop:monitorWorkshop,scope:monitorScope,days:monitorDays,today:data.monitor.today||isoToday()});
+ const names=new Map(summary.partners.map(w=>[w.id,w.name]));
+ const report=document.createElement('section');
+ report.className='live-card vehicle-network-report';
+ report.innerHTML='<div class="live-card-title"><h2>Detalle operativo</h2><label>Estado <select class="form-select" data-network-detail-state><option value="">Todos</option>'+Object.entries(reportStates).map(([key,label])=>'<option value="'+key+'" '+(networkReportState===key?'selected':'')+'>'+label+'</option>').join('')+'</select></label></div><div data-network-detail-results></div>';
+ detail.append(report);
+ function update(){
+  const rows=summary.appointments.filter(row=>!networkReportState||row.status===networkReportState)
+   .sort((a,b)=>b.date.localeCompare(a.date)||String(names.get(a.workshop)).localeCompare(String(names.get(b.workshop)),'es'));
+  const count=rows.reduce((sum,row)=>sum+Number(row.n||0),0);
+  report.querySelector('[data-network-detail-results]').innerHTML='<p role="status">'+count+' citas en la selección</p>'+(rows.length?table(['Día','Taller','Estado','Citas'],rows.map(row=>'<tr><td>'+escapeHtml(date(row.date))+'</td><td>'+escapeHtml(names.get(row.workshop)||'Taller')+'</td><td>'+escapeHtml(reportStates[row.status]||row.status)+'</td><td>'+Number(row.n||0)+'</td></tr>')):'<p>No hay citas para estos filtros.</p>');
+  labelTables();
+ }
+ report.querySelector('[data-network-detail-state]').addEventListener('change',event=>{networkReportState=event.target.value;update();});
+ update();
 }
 if(typeof document!=='undefined')setInterval(checkAlarms,30000);
 window.EnjoyVehicleCatalog={adminView,wireAdmin,planView,wirePlan,dashboard,wireDashboard,arrangeNetworkSummary,alarmBanner,checkAlarms};
-if(typeof module!=='undefined')module.exports={csvRows,parseRows,rowsForPlan,upcomingAlarms};
+if(typeof module!=='undefined')module.exports={csvRows,parseRows,parseMatrix,rowsForPlan,upcomingAlarms};
 })();

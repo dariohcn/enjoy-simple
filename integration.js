@@ -50,11 +50,11 @@ renderOrderPending=function(){if(!session)return;const actual=view;if(actual==='
 const baseAppointmentCard=appointmentCard;
 appointmentCard=function(a){const html=baseAppointmentCard(a);let products=a.associatedProducts||[];try{if(typeof products==='string')products=JSON.parse(products);}catch{products=[];}const extra=(a.catalogueServiceName?'<p>Servicio: '+esc(a.catalogueServiceName)+'</p>':'')+(Array.isArray(products)&&products.length?'<p>Productos: '+products.map(p=>esc(p.name)+' × '+Number(p.qty)).join(' · ')+'</p>':'');return html.replace('</article>',()=>'<div class="integration-appointment-detail">'+extra+'</div></article>');};
 go=function(next){if(!permitted(next))return toast('Esta sección no está disponible para su perfil.');return baseGo(next);};
-Object.assign(names,{adminHome:['','Administración'],overview:['','Inicio'],dashboard:['','Panel de control'],proforma:['','Proforma'],registration:['','Registro'],catalogImport:['','Importar catálogo'],maintenanceReport:['','Plan de mantenimiento']});
+Object.assign(names,{monitor:['','Panel de control'],adminHome:['','Administración'],overview:['','Inicio'],dashboard:['','Panel de control'],proforma:['','Proforma'],registration:['','Registro'],catalogImport:['','Importar catálogo'],maintenanceReport:['','Plan de mantenimiento']});
 render=function(){
  if(!session)return baseRender();
- if(identity!==session.email){identity=session.email;quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];quoteLines=[];vehicleId='';quoteId='';saved=false;quoteNo='';conditions='';if(session.role==='admin')view='adminHome';}
- if(!permitted(view))view=session.role==='admin'?'adminHome':'overview';
+ if(identity!==session.email){identity=session.email;quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];quoteLines=[];vehicleId='';quoteId='';saved=false;quoteNo='';conditions='';if(session.role==='admin')view='monitor';}
+ if(!permitted(view))view=session.role==='admin'?'monitor':'overview';
  const requested=view,custom=['adminHome','dashboard','maintenanceReport','proforma','registration','catalogImport'].includes(requested);
  if(custom)view=requested==='dashboard'?'overview':'security';
  baseRender();view=requested;if(!data)return;
@@ -71,7 +71,7 @@ render=function(){
  $('#crumb').textContent=requested==='security'&&session.role==='owner'?'Configuración de usuario':names[requested]?.[1]||names.security[1];
  const entries=session.role==='admin'?[['Administración','adminHome'],...adminCards.map(c=>[c[0],c[1]])]:[...ownerCards.map(c=>[c[0],c[1]]),['Configuración de usuario','security']];
  $('#nav').innerHTML=entries.map(([label,v])=>'<button data-integrated-view="'+v+'" class="'+(v===requested?'active':'')+'" '+(v===requested?'aria-current="page"':'')+'>'+label+'</button>').join('')+'<button data-action="logout">Cerrar sesión</button>';
- $('#mobile-nav').innerHTML=(session.role==='admin'?[['Inicio','adminHome'],['Plan de mantenimiento','maintenanceReport'],['Red','monitor'],['Talleres','admin']]:ownerCards.map(c=>[c[0],c[1]])).map(([label,v])=>'<button data-integrated-view="'+v+'" '+(v===requested?'class="active" aria-current="page"':'')+'>'+label+'</button>').join('');
+ $('#mobile-nav').innerHTML=(session.role==='admin'?[['Inicio','adminHome'],['Plan de mantenimiento','maintenanceReport'],['Panel','monitor'],['Talleres','admin']]:ownerCards.map(c=>[c[0],c[1]])).map(([label,v])=>'<button data-integrated-view="'+v+'" '+(v===requested?'class="active" aria-current="page"':'')+'>'+label+'</button>').join('');
  if(!['overview','adminHome'].includes(requested))$('#contenido').insertAdjacentHTML('afterbegin','<button class="btn secondary integration-back" data-integrated-view="'+(session.role==='admin'?'adminHome':'overview')+'">← Volver a Inicio</button>');
 
  labelTables();

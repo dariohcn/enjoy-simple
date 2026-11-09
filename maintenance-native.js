@@ -160,7 +160,7 @@ function mountProforma(){
   const row=document.createElement('tr');
   row.className='nm-quote-row';
   row.innerHTML=`<td data-index></td>
-   <td><input class="form-control" aria-label="Descripción" data-description required maxlength="240" value="${safe(description)}"></td>
+   <td><input class="form-control" aria-label="Descripción" data-description required maxlength="2500" value="${safe(description)}"></td>
    <td><input class="form-control" aria-label="${parts?'Cantidad':'Horas'}" type="number" min="0.000001" step="any" data-quantity required value="${safe(quantity)}"></td>
    <td><input class="form-control" aria-label="Valor unitario USD" type="number" min="0" step="any" data-price required value="${safe(price)}"></td>
    <td data-line-total></td>

@@ -99,16 +99,15 @@ function isFutureAppointment(a){return new Date(a.date+"T"+a.time+":00-05:00").g
 // Keep the same navigation usable by touch, keyboard and wide-screen workstations.
 const navigationMedia=matchMedia('(max-width:1199px)');
 function setNavigation(open,returnFocus=true){
- const mobile=!!window.EnjoyViewport?.isPhone()||matchMedia('(max-width:1199px)').matches;
- const expanded=!!open&&mobile;
+ const expanded=!!open;
  const wasOpen=document.body.classList.contains('menu-open');
  document.body.classList.toggle('menu-open',expanded);
  $('#menu').setAttribute('aria-expanded',String(expanded));
  $('#menu').setAttribute('aria-label',expanded?'Cerrar navegación':'Abrir navegación');
- $('#sidebar').inert=mobile&&!expanded;
+ $('#sidebar').inert=!expanded;
  $('.shell').inert=expanded;
  if(expanded)$('#drawer-close').focus();
- else if(wasOpen&&returnFocus&&mobile)$('#menu').focus();
+ else if(wasOpen&&returnFocus)$('#menu').focus();
 }
 $('#drawer-close').onclick=()=>setNavigation(false);
 $('#nav-backdrop').onclick=()=>setNavigation(false);
