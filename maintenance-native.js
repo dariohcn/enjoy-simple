@@ -82,7 +82,6 @@ function mountProforma(){
    result[9]=price;
    result[10]=result[8]===1?price:0;
    result[12]=round(quantity*price);
-   result[16]=row.querySelector('[data-delivery]')?.value.trim()||'';
    return result;
   });
  }
@@ -111,7 +110,6 @@ function mountProforma(){
    <td><input class="form-control" aria-label="${parts?'Cantidad':'Horas'}" type="number" min="0.000001" step="any" data-quantity required value="${safe(quantity)}"></td>
    <td><input class="form-control" aria-label="Valor unitario USD" type="number" min="0" step="any" data-price required value="${safe(price)}"></td>
    <td data-line-total></td>
-   ${parts?'<td><input class="form-control" aria-label="Entrega" data-delivery maxlength="60"></td>':''}
    <td><button type="button" class="btn secondary" data-remove>Quitar rubro</button></td>`;
   row.querySelector('[data-remove]').onclick=()=>{row.remove();refreshTotal();};
   for(const input of row.querySelectorAll('input'))input.readOnly=dialog.dataset.editing!=='true';
@@ -123,7 +121,7 @@ function mountProforma(){
   fieldset.dataset.kind=kind;
   fieldset.innerHTML=`<legend>${label}</legend>
    <div class="nm-form-scroll" role="region" aria-label="${label}" tabindex="0"><table class="nm-form-items">
-   <thead><tr><th scope="col">Ítem</th><th scope="col">Descripción</th><th scope="col">${kind?'Horas':'Cantidad'}</th><th scope="col">Valor unitario</th><th scope="col">Valor total</th>${kind?'':'<th scope="col">Entrega</th>'}<th scope="col">Acción</th></tr></thead>
+   <thead><tr><th scope="col">Ítem</th><th scope="col">Descripción</th><th scope="col">${kind?'Horas':'Cantidad'}</th><th scope="col">Valor unitario</th><th scope="col">Valor total</th><th scope="col">Acción</th></tr></thead>
    <tbody></tbody></table></div>
    <button type="button" class="btn secondary" data-add>Agregar rubro</button>`;
   editor.append(fieldset);
@@ -155,11 +153,11 @@ function mountProforma(){
   const summary=totals(rows);
   const fields=Object.fromEntries(new FormData(event.currentTarget));
   const vehicle=[filters.year==='Sin año indicado'?'':filters.year,filters.brand,filters.model,filters.code,filters.km?filters.km+' km':''].filter(Boolean).join(' · ');
-  const lines=(items,parts)=>items.map((r,index)=>{
+  const lines=(items)=>items.map((r,index)=>{
    const quantity=r[7]??r[15], amount=num(r[12]);
-   return `<tr><td>${index+1}</td><td>${safe(r[6])}</td><td>${safe(quantity)}</td><td>${num(quantity)?usd(r[9]):'—'}</td><td>${usd(amount)}</td>${parts?'<td>'+safe(r[16]||'—')+'</td>':''}</tr>`;
+   return `<tr><td>${index+1}</td><td>${safe(r[6])}</td><td>${safe(quantity)}</td><td>${num(quantity)?usd(r[9]):'—'}</td><td>${usd(amount)}</td></tr>`;
   }).join('');
-  const section=(title,items,parts=false)=>`<table><thead><tr><th colspan="${parts?6:5}">${title}</th></tr><tr><th>Ítem</th><th>Descripción</th><th>${parts?'Cantidad':'Horas'}</th><th>Valor unitario</th><th>Valor total</th>${parts?'<th>Entrega</th>':''}</tr></thead><tbody>${lines(items,parts)||`<tr><td colspan="${parts?6:5}">Sin partidas</td></tr>`}</tbody></table>`;
+  const section=(title,items,parts=false)=>`<table><thead><tr><th colspan="5">${title}</th></tr><tr><th>Ítem</th><th>Descripción</th><th>${parts?'Cantidad':'Horas'}</th><th>Valor unitario</th><th>Valor total</th></tr></thead><tbody>${lines(items)||`<tr><td colspan="5">Sin partidas</td></tr>`}</tbody></table>`;
   const page=document.createElement('section');
   page.id='integration-print';
   page.className='nm-printed';
