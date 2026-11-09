@@ -1,0 +1,13 @@
+
+.vehicle-summary-layout{display:grid;grid-template-columns:minmax(180px,1fr) minmax(0,4fr);align-items:start;gap:16px;margin-top:14px}
+.vehicle-summary-kpis,.vehicle-network-layout .network-metrics{display:grid;grid-template-columns:1fr;gap:9px;margin:0}
+.vehicle-summary-kpis article{margin:0;padding:12px 16px}
+.vehicle-summary-kpis h2{margin:4px 0 0;font-size:22px}
+.vehicle-network-layout .network-charts{margin-top:0;min-width:0}
+#vehicle-import form{display:grid;align-content:start;gap:10px;min-width:0}
+#vehicle-import form h2{font-size:17px}
+#vehicle-import form button{justify-self:start}
+#vehicle-import [hidden],#vehicle-plan-scope [hidden]{display:none!important}
+#vehicle-plan-scope [data-scope-status]{margin:12px 0}
+#vehicle-plan-scope [data-scope-status] img{vertical-align:middle}
+@media(max-width:850px){.vehicle-summary-layout{grid-template-columns:minmax(0,1fr)}.vehicle-summary-kpis,.vehicle-network-layout .network-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
