@@ -17,7 +17,7 @@ function narrow(rows,key,index){return rows.filter(r=>text(r[index])===filters[k
 function pick(rows,key,index){const vals=unique(rows,index);if(!vals.includes(filters[key]))filters[key]=vals[0]||'';return narrow(rows,key,index);}
 function selection(){let rows=source?.rows||[],choices={};choices.year=[...new Set(rows.map(r=>modelYear(r[2])))].sort((a,b)=>b.localeCompare(a,'es',{numeric:true}));if(!choices.year.includes(filters.year))filters.year=choices.year.find(y=>y!=='Sin año indicado')||choices.year[0]||'';rows=rows.filter(r=>modelYear(r[2])===filters.year);for(const [key,i] of [['brand',0],['model',1],['code',2],['km',4],['plan',13]]){choices[key]=unique(rows,i);rows=pick(rows,key,i);}if(source?.plans)rows=rows.flatMap(h=>source.plans[h[14]][6].map(index=>{const l=source.items[index];return [h[0],h[1],h[2],h[3],h[4],l[0],l[1],l[2],l[3],l[4],l[5],l[6],l[7],h[13],null,l[8]];}));return {rows,choices};}
 function visibleRows(rows){const q=filters.search.toLocaleLowerCase('es');return rows.filter(r=>(!filters.type||(filters.type==='labor'?num(r[8])===1:num(r[8])!==1))&&(!q||[r[5],r[6]].join(' ').toLocaleLowerCase('es').includes(q)));}
-function totals(rows){const labor=currencySum(rows.filter(r=>num(r[8])===1)),subtotal=currencySum(rows),parts=round(subtotal-labor);return {labor,parts,subtotal,total:round(subtotal*1.15),extra:round(subtotal*.15),rate:Math.max(0,...rows.filter(r=>num(r[8])===1).map(r=>num(r[10])))};}
+function totals(rows,iva=15){const labor=currencySum(rows.filter(r=>num(r[8])===1)),subtotal=currencySum(rows),parts=round(subtotal-labor);const extra=round(subtotal*iva/100);return {labor,parts,subtotal,total:round(subtotal+extra),extra,rate:Math.max(0,...rows.filter(r=>num(r[8])===1).map(r=>num(r[10])))};}
 function option(key,values,label,format=x=>x){return '<label>'+label+'<select class="form-select" data-nm-filter="'+key+'" '+(!values.length?'disabled':'')+'>'+values.map(v=>'<option value="'+safe(v)+'" '+(v===filters[key]?'selected':'')+'>'+safe(format(v))+'</option>').join('')+'</select></label>';}
 function stat(label,value,tone,detail){return '<article class="nm-stat '+tone+'"><span>'+label+'</span><strong>'+usd(value)+'</strong><small>'+detail+'</small></article>';}
 function body(){
@@ -26,9 +26,9 @@ function body(){
  const plans=choices.plan.map(id=>[id,source.rows.find(r=>text(r[13])===id&&text(r[2])===filters.code)?.[3]||id]);
  return '<div class="nm-filterbar">'+option('year',choices.year,'Año')+option('brand',choices.brand,'Marca')+option('model',choices.model,'Modelo')+option('code',choices.code,'Versión')+option('km',choices.km,'Kilometraje',v=>v?Number(v).toLocaleString('es-EC')+' km':'Sin intervalo')+'<button class="btn secondary" data-nm-reset>Restablecer</button></div>'+
  '<div class="nm-context"><div><span class="nm-eyebrow">PLAN SELECCIONADO</span><h2>'+safe(part?.[3]||'Sin partidas')+'</h2><p>'+safe(filters.brand)+' · '+safe(filters.model)+' · '+safe(filters.code)+'</p></div>'+(plans.length>1?option('plan',plans.map(x=>x[0]),'Variante de plan',id=>plans.find(x=>x[0]===id)[1]):'<span class="nm-tag">'+planRows.length+' partidas en el plan</span>')+'</div>'+
- '<section id="nm-proforma-editor" aria-label="Rubros editables de la proforma"></section><div class="nm-layout"><div class="nm-drawer"><button class="btn secondary nm-drawer-tab" type="button" data-nm-totals aria-controls="nm-totals">Totales</button><aside id="nm-totals" class="nm-stats" aria-label="Totales de la proforma">'+stat('Valor hora máximo',t.rate,'nm-slate','Tarifa de mano de obra')+stat('Mano de obra',t.labor,'nm-blue','Operaciones de la proforma')+stat('Repuestos e insumos',t.parts,'nm-teal','Partidas de la proforma')+stat('Subtotal',t.subtotal,'nm-slate','Suma de las partidas de la proforma')+stat('Total de referencia',t.total,'nm-total','Incluye 15% del informe de origen')+'</aside></div>'+
+ '<section id="nm-proforma-editor" aria-label="Rubros editables de la proforma"></section><div class="nm-layout"><div class="nm-drawer"><button class="btn secondary nm-drawer-tab" type="button" data-nm-totals aria-controls="nm-totals">Totales</button><aside id="nm-totals" class="nm-stats" aria-label="Totales de la proforma">'+stat('Valor hora máximo',t.rate,'nm-slate','Tarifa de mano de obra')+stat('Mano de obra',t.labor,'nm-blue','Operaciones de la proforma')+stat('Repuestos e insumos',t.parts,'nm-teal','Partidas de la proforma')+stat('Subtotal',t.subtotal,'nm-slate','Suma de las partidas de la proforma')+stat('Total de referencia',t.total,'nm-total','Incluye el IVA seleccionado en la proforma')+'</aside></div>'+
  '</div>'+
- '<p class="nm-footnote">Tarifario de referencia del informe proporcionado · última actualización de origen: 26/11/2025. Se consulta una sola versión y un solo plan para evitar sumar vehículos distintos. El total conserva el 15% de la referencia; confirme condiciones e impuestos antes de emitir una proforma.</p>';
+ '<p class="nm-footnote">Tarifario de referencia del informe proporcionado · última actualización de origen: 26/11/2025. Se consulta una sola versión y un solo plan para evitar sumar vehículos distintos. El IVA se puede ajustar en cada proforma.</p>';
 }
 
 function mountProforma(){
@@ -61,7 +61,8 @@ function mountProforma(){
     <tr><th scope="row">Total repuestos (sin IVA)</th><td data-total="parts"></td></tr>
     <tr><th scope="row">Total mano de obra (sin IVA)</th><td data-total="labor"></td></tr>
     <tr><th scope="row">Subtotal (REP + MO)</th><td data-total="subtotal"></td></tr>
-    <tr><th scope="row">Total incluido IVA de referencia (15%)</th><td data-total="total"></td></tr>
+    <tr><th scope="row"><label for="nm-iva">IVA (%)</label><input id="nm-iva" class="form-control" type="number" name="iva" min="0" max="100" step="0.01" required value="15"></th><td data-total="extra"></td></tr>
+    <tr><th scope="row">Total con IVA</th><td data-total="total"></td></tr>
    </tbody></table>
   </div>
   <p><strong>NOTA</strong><br>Las piezas y trabajos adicionales que se identifiquen durante el mantenimiento se cotizarán por separado.</p>
@@ -70,6 +71,7 @@ function mountProforma(){
   <div class="nm-actions"><button class="btn">Imprimir / guardar PDF</button></div>
  </form>`;
  const editor=dialog.querySelector('.nm-quote-lines');
+ const ivaInput=dialog.querySelector('#nm-iva');
  function readRows(){
   return [...editor.querySelectorAll('.nm-quote-row')].map(row=>{
    const description=row.querySelector('[data-description]').value.trim();
@@ -87,13 +89,14 @@ function mountProforma(){
  }
  function refreshTotal(){
   const rows=readRows();
-  const summary=totals(rows.filter(r=>Number.isFinite(r[12])));
+  const validIva=ivaInput.validity.valid;
+  const summary=totals(rows.filter(r=>Number.isFinite(r[12])),validIva?ivaInput.valueAsNumber:0);
   const panel=document.querySelector('#nm-totals');
   for(const [i,key] of ['rate','labor','parts','subtotal','total'].entries()){
    const value=panel?.querySelectorAll('.nm-stat strong')[i];
-   if(value)value.textContent=usd(summary[key]);
+   if(value)value.textContent=key==='total'&&!validIva?'—':usd(summary[key]);
   }
-  for(const cell of dialog.querySelectorAll('[data-total]'))cell.textContent=usd(summary[cell.dataset.total]);
+  for(const cell of dialog.querySelectorAll('[data-total]'))cell.textContent=!validIva&&['extra','total'].includes(cell.dataset.total)?'—':usd(summary[cell.dataset.total]);
   editor.querySelectorAll('tbody').forEach(group=>{
    [...group.rows].forEach((row,index)=>{row.querySelector('[data-index]').textContent=index+1;});
   });
@@ -142,6 +145,7 @@ function mountProforma(){
  };
  host.addEventListener('nm-refresh-totals',refreshTotal);
  editor.addEventListener('input',refreshTotal);
+ ivaInput.addEventListener('input',refreshTotal);
  refreshTotal();
  dialog.querySelector('form').onsubmit=event=>{
   event.preventDefault();
@@ -150,7 +154,8 @@ function mountProforma(){
    dialog.querySelector('output').textContent='Agregá al menos una partida y completá su descripción, cantidad y valor.';
    return;
   }
-  const summary=totals(rows);
+  const iva=ivaInput.valueAsNumber;
+  const summary=totals(rows,iva);
   const fields=Object.fromEntries(new FormData(event.currentTarget));
   const vehicle=[filters.year==='Sin año indicado'?'':filters.year,filters.brand,filters.model,filters.code,filters.km?filters.km+' km':''].filter(Boolean).join(' · ');
   const lines=(items)=>items.map((r,index)=>{
@@ -174,7 +179,8 @@ function mountProforma(){
    <tr><th>Total repuestos (sin IVA)</th><td>${usd(summary.parts)}</td></tr>
    <tr><th>Total mano de obra (sin IVA)</th><td>${usd(summary.labor)}</td></tr>
    <tr><th>Subtotal (REP + MO)</th><td>${usd(summary.subtotal)}</td></tr>
-   <tr><th>Total incluido IVA de referencia (15%)</th><td>${usd(summary.total)}</td></tr>
+   <tr><th>IVA (${safe(iva)}%)</th><td>${usd(summary.extra)}</td></tr>
+   <tr><th>Total con IVA</th><td>${usd(summary.total)}</td></tr>
   </tbody></table>
   <p><strong>NOTA</strong><br>Las piezas y trabajos adicionales que se identifiquen durante el mantenimiento se cotizarán por separado. Valores de referencia sujetos a confirmación.</p>
   <p class="nm-print-prepared"><strong>ELABORADO POR</strong><br>${safe(fields.prepared||'________________________')}</p>`;
