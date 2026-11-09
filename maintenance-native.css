@@ -84,3 +84,9 @@
 .nm-quote-row input{width:100%;min-width:0}
 .nm-quote-total{font-weight:700}
 @media(max-width:650px){.nm-quote-row{grid-template-columns:repeat(2,minmax(0,1fr));border-bottom:1px solid #dce5ec;padding-bottom:10px}.nm-quote-row label:first-child{grid-column:1/-1}.nm-quote-row button{justify-self:start}}
+
+#nm-proforma-editor{scroll-margin-top:72px;margin-bottom:16px}
+.nm-inline-proforma{background:#fff;border:1px solid #dce5ec;border-radius:12px;padding:16px}
+.nm-inline-proforma form{display:grid;gap:12px}
+.nm-inline-proforma h2,.nm-inline-proforma p{margin:0}
+.nm-inline-proforma .nm-quote-lines{grid-row:3}
