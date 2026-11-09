@@ -2,7 +2,7 @@
 /* Native maintenance planner. Reference data is served by this GitHub Pages site. */
 (() => {
 'use strict';
-let workshopName='', registeredClients=[], registeredVehicles=[];
+let workshopName='', workshopLogo='', registeredClients=[], registeredVehicles=[];
 let source=null,pending=null,failure='',filters={year:'',brand:'',model:'',code:'',km:'',plan:'',type:'',search:''};
 const text=x=>String(x??''),safe=x=>text(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const usd=n=>new Intl.NumberFormat('es-EC',{style:'currency',currency:'USD'}).format(n||0);
@@ -72,6 +72,14 @@ function connectVehicleLookup(form){
  chooser.addEventListener('change',()=>{if(chooser.value!=='')apply(options[Number(chooser.value)]);});
 }
 
+function proformaBrandHeader(){
+ const name=workshopName||'Taller de mecánica';
+ const logo=/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/=]+$/.test(workshopLogo)&&workshopLogo.length<=75000
+  ?`<img src="${safe(workshopLogo)}" alt="Logo de ${safe(name)}">`
+  :'';
+ return `<div class="nm-proforma-brand"><strong class="nm-enjoy-mark">enjoy</strong><span>${safe(name)}</span><div class="nm-company-logo">${logo}</div></div>`;
+}
+
 function mountProforma(){
  const host=document.querySelector('#nm-proforma-editor');
  if(!host||host.firstElementChild||!source)return;
@@ -90,7 +98,7 @@ function mountProforma(){
    <div class="nm-actions"><button type="button" class="btn" data-edit-plan aria-pressed="false">Modificar plan</button><button type="button" class="btn secondary" data-nm-export>Descargar estándar (CSV)</button></div>
   </div>
   <table class="nm-form-header"><tbody>
-   <tr><th colspan="4">${safe(workshopName||'Taller de mecánica')}</th></tr>
+   <tr><th colspan="4">${proformaBrandHeader()}</th></tr>
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
    <tr><th scope="row">Vehículo</th><td colspan="3">${safe(vehicleLabel)}</td></tr>
    <tr><th scope="row"><label for="nm-customer">Cliente</label></th><td colspan="3"><input id="nm-customer" class="form-control" name="customer" required maxlength="120"></td></tr>
@@ -190,7 +198,7 @@ function mountProforma(){
  editor.addEventListener('input',refreshTotal);
  ivaInput.addEventListener('input',refreshTotal);
  refreshTotal();
- dialog.querySelector('form').onsubmit=event=>{
+ dialog.querySelector('form').onsubmit=async event=>{
   event.preventDefault();
   const rows=readRows();
   if(!rows.length||rows.some(r=>!r[6]||!Number.isFinite(r[12]))){
@@ -210,7 +218,7 @@ function mountProforma(){
   page.id='integration-print';
   page.className='nm-printed';
   page.innerHTML=`<table class="nm-print-header"><tbody>
-   <tr><th colspan="4">${safe(workshopName||'Taller de mecánica')}</th></tr>
+   <tr><th colspan="4">${proformaBrandHeader()}</th></tr>
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
    <tr><th>Vehículo</th><td colspan="3">${safe(vehicle)}</td></tr>
    <tr><th>Cliente</th><td colspan="3">${safe(fields.customer)}</td></tr>
@@ -229,7 +237,8 @@ function mountProforma(){
   <p class="nm-print-prepared"><strong>ELABORADO POR</strong><br>${safe(fields.prepared||'________________________')}</p>`;
   document.getElementById(page.id)?.remove();
   document.body.append(page);
-  window.print();
+  await Promise.all([...page.querySelectorAll('img')].map(img=>img.decode().catch(()=>{})));
+  if(page.isConnected)window.print();
  };
  host.append(dialog);
  connectVehicleLookup(dialog.querySelector('form'));
@@ -253,7 +262,7 @@ async function load(){
  pending=(async()=>{const response=await fetch('assets/maintenance-reference.json.gz?v=1');if(!response.ok)throw Error('Respuesta '+response.status);if(!window.DecompressionStream)throw Error('Actualice su navegador para consultar el tarifario.');const stream=response.body.pipeThrough(new DecompressionStream('gzip'));const json=await new Response(stream).json();if(json.version!==2||!Array.isArray(json.plans)||!json.plans.length||!Array.isArray(json.items)||json.columns?.length!==16)throw Error('El archivo de planes no es válido.');source=json;source.rows=json.plans.map((p,i)=>[p[0],p[1],p[2],p[3],p[4],null,null,null,null,null,null,null,null,p[5],i,null]);})().catch(e=>{failure=e.message;}).finally(()=>{pending=null;paint();});
  return pending;
 }
-function render(options={}){workshopName=options.workshopName||'';registeredClients=options.clients||[];registeredVehicles=options.vehicles||[];setTimeout(()=>{load();mountProforma();},0);return '<section id="native-maintenance" class="native-maintenance">'+body()+'</section>';}
+function render(options={}){workshopName=options.workshopName||'';workshopLogo=options.workshopLogo||'';registeredClients=options.clients||[];registeredVehicles=options.vehicles||[];setTimeout(()=>{load();mountProforma();},0);return '<section id="native-maintenance" class="native-maintenance">'+body()+'</section>';}
 document.addEventListener('change',e=>{const key=e.target.dataset.nmFilter;if(!key||!source)return;filters[key]=e.target.value;const order=['year','brand','model','code','km','plan'],index=order.indexOf(key);if(index>=0)for(const next of order.slice(index+1))filters[next]='';paint();});
 
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-nm-totals')&&matchMedia('(hover: none)').matches){const drawer=b.closest('.nm-drawer');b.setAttribute('aria-expanded',String(drawer.classList.toggle('nm-open')));return;}if(b.hasAttribute('data-nm-retry')){load();paint();}if(b.hasAttribute('data-nm-reset')){filters={year:'',brand:'',model:'',code:'',km:'',plan:'',type:'',search:''};paint();}if(b.hasAttribute('data-nm-export')&&source){const rows=selection().rows,t=totals(rows);const cell=v=>'"'+text(v).replace(/^[=+@\t\r-]/,"'"+text(v)[0]).replace(/"/g,'""')+'"';const output=[['Marca','Modelo','Código modelo','Plan','KM','Ítem','Descripción','Cantidad / horas','Tipo','Subtotal USD'],...rows.map(r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],num(r[8])===1?'Mano de obra':'Repuesto / insumo',num(r[12]).toFixed(2)]),['Subtotal','','','','','','','','',t.subtotal.toFixed(2)],['Adicional referencia 15%','','','','','','','','',t.extra.toFixed(2)],['Total referencia','','','','','','','','',t.total.toFixed(2)]].map(r=>r.map(cell).join(';')).join('\r\n');const blob=new Blob(['\ufeff'+output],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='plan-mantenimiento-'+filters.code.replace(/[^a-z0-9]/gi,'-')+'-'+filters.km+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}});
