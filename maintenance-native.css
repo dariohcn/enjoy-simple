@@ -48,9 +48,9 @@
 @media(prefers-reduced-motion:reduce){.nm-loading{animation:none}}
 
 .nm-filterbar{grid-template-columns:repeat(5,minmax(0,1fr)) auto}
-.nm-workshop .nm-layout{display:block}
-.nm-drawer{position:fixed;right:0;top:40%;z-index:45;display:flex;align-items:flex-start}
-.nm-drawer .nm-stats{display:none;width:min(220px,65vw);max-height:55dvh;overflow:auto;padding:8px;background:#f0f6fa;border:1px solid #dce5ec;border-radius:0 0 0 12px;box-shadow:0 8px 24px #173d5525;grid-template-columns:1fr}
+.native-maintenance .nm-layout{display:block}
+.nm-drawer{position:fixed;right:0;top:40%;z-index:45}
+.nm-drawer .nm-stats{position:absolute;right:0;top:100%;display:none;width:min(220px,65vw);max-height:55dvh;overflow:auto;padding:8px;background:#f0f6fa;border:1px solid #dce5ec;border-radius:0 0 0 12px;box-shadow:0 8px 24px #173d5525;grid-template-columns:1fr}
 .nm-drawer .nm-drawer-tab{border-radius:8px 0 0 8px;background:#fff}
 @media(hover:hover){.nm-drawer:hover .nm-stats,.nm-drawer:focus-within .nm-stats{display:grid}}
 @media(hover:none){.nm-drawer.nm-open .nm-stats{display:grid}}
