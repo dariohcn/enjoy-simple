@@ -18,3 +18,8 @@
 .integration-tile:focus-visible,[data-integrated-view]:focus-visible{outline:3px solid #247daf;outline-offset:3px}
 #mobile-nav button[data-integrated-view].active{background:#e1f0fa;color:#0f659a;border-radius:8px;font-weight:600}
 
+
+.integration-identity{display:flex;align-items:center;gap:12px}
+.integration-identity img{width:56px;height:56px;flex:none;object-fit:contain;padding:5px;border-radius:10px;background:#fff}
+.integration-hero-workshop .integration-identity span,.integration-hero-workshop h2{color:#fff}
+.integration-hero-workshop p{color:#e6eff5}
