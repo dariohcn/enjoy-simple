@@ -72,7 +72,7 @@ body.enjoy-refined:not(.logged-out) #contenido .dashboard-hero{
  background-position:center,center 49%;background-size:cover;
 }
 body.enjoy-refined:not(.logged-out) #contenido .dashboard-hero h1{color:#fff;font-size:clamp(18px,2vw,24px);margin:0}
-body.enjoy-refined:not(.logged-out) #contenido .dashboard-hero p{color:#e4eef5;margin:4px 0 0}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-hero p{color:#e4eef5!important;margin:4px 0 0}
 .dashboard-hero-actions{display:flex;flex-wrap:wrap;gap:8px}
 .dashboard-hero-actions .btn{font-size:12px;min-height:36px}
 .vehicle-network-report{margin-top:12px;padding:14px}
@@ -104,3 +104,5 @@ body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table :is(td,th
  .dashboard-detail-table col.date{width:80px}.dashboard-detail-table col.state{width:112px}.dashboard-detail-table col.count{width:55px}
  body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-report .dashboard-detail-table{min-width:390px!important}
 }
+
+.vehicle-network-detail .enjoy-taskboard{margin:12px 0}
