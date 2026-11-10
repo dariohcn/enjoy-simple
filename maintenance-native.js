@@ -50,7 +50,7 @@ function connectVehicleLookup(form){
  function apply(record){
   for(const name of Object.keys(fields))fields[name].value=record[name];
   matches.hidden=true;
-  status.textContent='Vehículo seleccionado: '+[record.model,record.plate||record.chassis].filter(Boolean).join(' · ')+'. Podés editar los campos.';
+  status.textContent='Vehículo seleccionado: '+[record.model,record.plate||record.chassis].filter(Boolean).join(' · ')+'. Puede editar los campos.';
   status.hidden=false;
  }
  function lookup(name,exactOnly){
@@ -60,7 +60,7 @@ function connectVehicleLookup(form){
   if(exactOnly&&exact.length===1){apply(exact[0]);return;}
   status.hidden=true;
   matches.hidden=!options.length;
-  chooser.replaceChildren(new Option('Seleccioná el vehículo', ''));
+  chooser.replaceChildren(new Option('Seleccione el vehículo', ''));
   options.forEach((record,index)=>{
    chooser.add(new Option([record.customer,record.plate||record.chassis||'Sin placa',record.model].filter(Boolean).join(' · '),String(index)));
   });
@@ -191,7 +191,7 @@ function mountProforma(){
   dialog.dataset.editing=String(editing);
   editButton.setAttribute('aria-pressed',String(editing));
   editButton.textContent=editing?'Terminar edición':'Modificar plan';
-  dialog.querySelector('[data-plan-mode]').textContent=editing?'Agregá, quitá o ajustá las partidas de esta proforma.':'Revisá el plan generado antes de imprimir.';
+  dialog.querySelector('[data-plan-mode]').textContent=editing?'Agregue, quite o ajuste las partidas de esta proforma.':'Revise el plan generado antes de imprimir.';
   for(const input of editor.querySelectorAll('input'))input.readOnly=!editing;
  };
  host.addEventListener('nm-refresh-totals',refreshTotal);
@@ -202,7 +202,7 @@ function mountProforma(){
   event.preventDefault();
   const rows=readRows();
   if(!rows.length||rows.some(r=>!r[6]||!Number.isFinite(r[12]))){
-   dialog.querySelector('output').textContent='Agregá al menos una partida y completá su descripción, cantidad y valor.';
+   dialog.querySelector('output').textContent='Agregue al menos una partida y complete su descripción, cantidad y valor.';
    return;
   }
   const iva=ivaInput.valueAsNumber;

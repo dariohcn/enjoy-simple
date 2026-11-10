@@ -44,7 +44,7 @@ const messageMarkupBeforeEmpty=messageMarkup;messageMarkup=function(){return cha
 // La identidad de sesión del servidor determina las vistas disponibles.
 function permittedViews(){return session?.role==='admin'?['monitor','admin','products','users','reminders','security','chat','orders']:['overview','calendar','clients','vehicles','maintenance','services','products','requests','alerts','reminders','indicators','security','chat','orders'];}
 const roleAwareGo=go;go=function(next){if(!session||!permittedViews().includes(next))return;roleAwareGo(next);};
-let renderedIdentity='';const roleAwareRender=render;render=function(){if(!session)return loginPage();if(!permittedViews().includes(view))view=session.role==='admin'?'monitor':'overview';if(renderedIdentity!==session.email){chatMembers=[];chatMessages=[];chatRecipient='';chatError='';renderedIdentity=session.email;}roleAwareRender();document.body.dataset.accountRole=session.role;};
+let renderedIdentity='';const roleAwareRender=render;render=function(){if(!session)return loginPage();if(!permittedViews().includes(view))view=session.role==='admin'?'adminHome':'overview';if(renderedIdentity!==session.email){chatMembers=[];chatMessages=[];chatRecipient='';chatError='';renderedIdentity=session.email;}roleAwareRender();document.body.dataset.accountRole=session.role;};
 
 
 

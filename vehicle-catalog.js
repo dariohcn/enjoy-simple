@@ -12,7 +12,7 @@ function excelReader(){
  if(!excelScript)excelScript=new Promise((resolve,reject)=>{
   const script=document.createElement('script');
   script.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
-  const failed=()=>{clearTimeout(timeout);excelScript=null;script.remove();reject(Error('No se pudo cargar el lector de Excel. Reintentá o usá CSV.'));};
+  const failed=()=>{clearTimeout(timeout);excelScript=null;script.remove();reject(Error('No se pudo cargar el lector de Excel. Reintente o use CSV.'));};
   const timeout=setTimeout(failed,15000);
   script.onload=()=>{clearTimeout(timeout);resolve(window.XLSX);};
   script.onerror=failed;
@@ -53,7 +53,7 @@ function parseRows(rows){
   if(!Number.isInteger(item.anio)||item.anio<1900||item.anio>2100||!Number.isInteger(item.km)||item.km<0||item.km>2000000||
    !(item.cantidad>0&&item.cantidad<=100000)||!(item.precio>=0&&item.precio<=1000000)||!['MO','R'].includes(item.tipo)||
    !item.modelo||item.modelo.length>120||!item.version||item.version.length>120||!item.codigo||item.codigo.length>80||
-   !item.descripcion||item.descripcion.length>240)throw Error('Revisá los datos de la fila '+(i+2)+'.');
+   !item.descripcion||item.descripcion.length>240)throw Error('Revise los datos de la fila '+(i+2)+'.');
   const key=JSON.stringify([item.anio,item.modelo,item.version,item.km,item.tipo,item.codigo]);
   if(seen.has(key))throw Error('Código repetido dentro del plan en la fila '+(i+2)+'.');
   seen.add(key);
@@ -87,14 +87,14 @@ function parseMatrix(rows){
  return {items,omissions,sheet:'MATRIZ'};
 }
 async function readFile(file,stage,workbook,sheetName){
- if(!file||file.size>5*1024*1024)throw Error('Elegí un archivo de hasta 5 MB.');
+ if(!file||file.size>5*1024*1024)throw Error('Elija un archivo de hasta 5 MB.');
  if(/\.csv$/i.test(file.name)){
   const rows=csvRows(await file.text());
   stage(2,'Validando filas del CSV…');
   return {items:parseRows(rows),omissions:[],sheet:'CSV'};
  }
- if(!/\.xlsx?$/i.test(file.name))throw Error('Usá un archivo Excel (.xlsx o .xls) o CSV.');
- if(!workbook||!sheetName)throw Error('Elegí la hoja de Excel que querés importar.');
+ if(!/\.xlsx?$/i.test(file.name))throw Error('Use un archivo Excel (.xlsx o .xls) o CSV.');
+ if(!workbook||!sheetName)throw Error('Elija la hoja de Excel que desea importar.');
  const sheet=workbook.book.Sheets[sheetName];
  if(!sheet)throw Error('La hoja seleccionada no está disponible.');
  const matrix=sheetName.trim().toUpperCase()==='MATRIZ';
@@ -123,7 +123,7 @@ async function findLogo(name,signal){
  const info=Object.values(file.query?.pages||{})[0]?.imageinfo?.[0];
  return logoUrl(info?.thumburl||info?.url);
 }
-const scopeFields='<label>Tipo de vehículo<select name="vehicle_type" class="form-select" required><option value="">Seleccioná</option><option value="liviano">Liviano</option><option value="pesado">Pesado</option></select></label><label data-region hidden>Región<select name="region" class="form-select"><option value="">Seleccioná</option><option value="sierra">Sierra</option><option value="costa">Costa</option></select></label>';
+const scopeFields='<label>Tipo de vehículo<select name="vehicle_type" class="form-select" required><option value="">Seleccione</option><option value="liviano">Liviano</option><option value="pesado">Pesado</option></select></label><label data-region hidden>Región<select name="region" class="form-select"><option value="">Seleccione</option><option value="sierra">Sierra</option><option value="costa">Costa</option></select></label>';
 function currentScope(form){
  const type=form.elements.vehicle_type.value;
  const region=form.elements.region;
@@ -138,7 +138,7 @@ function adminView(){
  '<p data-brand-status role="status"></p><button class="btn">Guardar marca</button></form>'+
  '<form data-catalog-form><h2>Cargar catálogo por marca</h2><label>Marca<select name="brand" class="form-select" required></select></label>'+scopeFields+
  '<label>Archivo Excel o CSV<input class="form-control" name="file" type="file" accept=".xlsx,.xls,.csv" required></label>'+
- '<label data-sheet-picker hidden>Hoja de Excel<select name="sheet" class="form-select"></select></label><p>Seleccioná la hoja que contiene las partidas. Cada carga actualiza el catálogo activo de la marca, el tipo y la región seleccionados.</p>'+
+ '<label data-sheet-picker hidden>Hoja de Excel<select name="sheet" class="form-select"></select></label><p>Seleccione la hoja que contiene las partidas. Cada carga actualiza el catálogo activo de la marca, el tipo y la región seleccionados.</p>'+
  '<a download="plantilla-catalogo.csv" href="data:text/csv;charset=utf-8,'+encodeURIComponent(columns.join(';')+'\r\n')+'">Descargar plantilla CSV</a>'+
  '<progress data-import-progress max="4" value="0" aria-label="Avance de la importación" hidden></progress><p data-catalog-status role="status" aria-live="polite"></p><button class="btn">Validar e importar</button><button type="button" class="btn secondary" data-import-confirm hidden>Importar partidas válidas</button></form></div>'+
  '<h2>Catálogos activos por marca</h2><div data-catalog-index role="status">Cargando…</div></section>';
@@ -160,7 +160,7 @@ function wireAdmin(){
   if(!host.isConnected)return;
   const select=importForm.elements.brand;
   const current=select.value;
-  select.replaceChildren(new Option('Seleccioná una marca',''),...index.brands.map(b=>new Option(b.name,b.name)));
+  select.replaceChildren(new Option('Seleccione una marca',''),...index.brands.map(b=>new Option(b.name,b.name)));
   select.value=index.brands.some(b=>b.name===current)?current:'';
   host.querySelector('[data-catalog-index]').innerHTML=index.imports.length?table(['Marca','Tipo','Región','Archivo','Partidas','Fecha'],index.imports.map(row=>'<tr><td>'+escapeHtml(row.brand)+'</td><td>'+typeLabel[row.vehicle_type]+'</td><td>'+zoneLabel[row.region]+'</td><td>'+escapeHtml(row.filename)+'</td><td>'+Number(row.count)+'</td><td>'+escapeHtml(new Date(row.created_at).toLocaleDateString('es-EC',{timeZone:'America/Guayaquil'}))+'</td></tr>')):'<p>Todavía no hay catálogos importados.</p>';
   labelTables();
@@ -180,8 +180,8 @@ function wireAdmin(){
     const logo=await findLogo(name,signal);
     if(signal.aborted||!host.isConnected)return;
     brandForm.elements.logo.value=logo;showLogo();
-    brandStatus.textContent=logo?'Revisá el logo antes de guardar la marca.':'No se encontró un logo. Podés ingresar su URL o guardar la marca.';
-   }catch(e){if(!signal.aborted)brandStatus.textContent='La búsqueda de logo no está disponible. Podés guardar la marca.';}
+    brandStatus.textContent=logo?'Revise el logo antes de guardar la marca.':'No se encontró un logo. Puede ingresar su URL o guardar la marca.';
+   }catch(e){if(!signal.aborted)brandStatus.textContent='La búsqueda de logo no está disponible. Puede guardar la marca.';}
   },550);
  });
  brandForm.addEventListener('submit',async event=>{
@@ -190,7 +190,7 @@ function wireAdmin(){
   button.disabled=true;
   try{
    const entered=brandForm.elements.logo.value.trim();
-   if(entered&&!logoUrl(entered))throw Error('Ingresá una URL de imagen de upload.wikimedia.org.');
+   if(entered&&!logoUrl(entered))throw Error('Ingrese una URL de imagen de upload.wikimedia.org.');
    const brand=await api('vehicle-brand-save',{brand:brandForm.elements.brand.value,logo_url:entered});
    clearTimeout(logoTimer);logoRequest?.abort();await refreshIndex();importForm.elements.brand.value=brand.name;
    brandStatus.textContent='Marca guardada.';
@@ -225,7 +225,7 @@ function wireAdmin(){
   submit.disabled=true;
   stage(1,'Leyendo las hojas del Excel…');
   try{
-   if(file.size>5*1024*1024)throw Error('Elegí un archivo de hasta 5 MB.');
+   if(file.size>5*1024*1024)throw Error('Elija un archivo de hasta 5 MB.');
    const xlsx=await excelReader();
    const book=xlsx.read(await file.arrayBuffer(),{type:'array',sheetRows:20002});
    if(token!==fileVersion||!host.isConnected)return;
@@ -234,7 +234,7 @@ function wireAdmin(){
    sheetField.replaceChildren(...book.SheetNames.map(name=>new Option(name,name)));
    sheetField.value=book.SheetNames.find(name=>name.trim().toUpperCase()==='MATRIZ')||book.SheetNames[0];
    sheetPicker.hidden=false;sheetField.required=true;
-   stage(1,'Hojas detectadas: '+book.SheetNames.length+'. Seleccioná una hoja y pulsá Validar e importar.');
+   stage(1,'Hojas detectadas: '+book.SheetNames.length+'. Seleccione una hoja y pulse Validar e importar.');
   }catch(e){if(token===fileVersion)stage(1,'No se pudo leer el Excel: '+e.message);}
   finally{if(token===fileVersion)submit.disabled=false;}
  });
@@ -242,7 +242,7 @@ function wireAdmin(){
   pendingImport=null;confirm.hidden=true;
   if(submit.disabled)return;
   progress.hidden=true;
-  importStatus.textContent=importForm.elements.file.files[0]?(workbook?'Hoja seleccionada: '+sheetField.value+'. ':'Archivo seleccionado. ')+'Pulsá Validar e importar.':'';
+  importStatus.textContent=importForm.elements.file.files[0]?(workbook?'Hoja seleccionada: '+sheetField.value+'. ':'Archivo seleccionado. ')+'Pulse Validar e importar.':'';
  });
  confirm.addEventListener('click',()=>{if(pendingImport)publish(pendingImport.payload,pendingImport.omissions);});
  importForm.addEventListener('submit',async event=>{
@@ -266,8 +266,8 @@ function wireAdmin(){
 }
 function planView(){
  return '<section id="vehicle-plan-scope" class="card integration-pad"><form class="fields">'+scopeFields+
- '<label>Marca del catálogo<select name="brand" class="form-select" disabled><option value="">Seleccioná el tipo</option></select></label></form>'+
- '<p data-scope-status role="status">Elegí Liviano o Pesado para consultar un catálogo.</p>'+
+ '<label>Marca del catálogo<select name="brand" class="form-select" disabled><option value="">Seleccione el tipo</option></select></label></form>'+
+ '<p data-scope-status role="status">Elija Liviano o Pesado para consultar un catálogo.</p>'+
  '<button class="btn secondary" data-reference type="button">Consultar referencia original</button></section><div id="vehicle-plan-content"></div>';
 }
 function rowsForPlan(items,brand){
@@ -290,9 +290,9 @@ function wirePlan(options){
  function updateScope(){
   sequence++;output.replaceChildren();
   const scope=currentScope(form),available=scopes();
-  brand.replaceChildren(new Option('Seleccioná una marca',''),...available.map(item=>new Option(item.brand,item.brand)));
+  brand.replaceChildren(new Option('Seleccione una marca',''),...available.map(item=>new Option(item.brand,item.brand)));
   brand.disabled=!available.length;
-  status.textContent=!scope.vehicle_type?'Elegí Liviano o Pesado.':!scope.region?'Elegí Sierra o Costa.':!index?'Consultando catálogos…':available.length?'Seleccioná la marca del catálogo.':'Todavía no hay un catálogo cargado para esta selección.';
+  status.textContent=!scope.vehicle_type?'Elija Liviano o Pesado.':!scope.region?'Elija Sierra o Costa.':!index?'Consultando catálogos…':available.length?'Seleccione la marca del catálogo.':'Todavía no hay un catálogo cargado para esta selección.';
  }
  form.elements.vehicle_type.addEventListener('change',updateScope);
  form.elements.region.addEventListener('change',updateScope);
