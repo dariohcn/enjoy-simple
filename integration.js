@@ -8,11 +8,16 @@ permittedViews=function(){return roleViews[session?.role]||[];};
 const cents=n=>Math.round(Number(n)*100),sum=rows=>rows.reduce((n,r)=>n+cents(r.price)*r.qty,0)/100;
 const catalog=()=>[...(data?.services||[]).filter(x=>x.active!==false).map(x=>({key:'s:'+x.id,id:x.id,kind:'service',name:x.name,serviceType:x.serviceType||'Diagnóstico',price:Math.round(total(x)*100)/100,unit:'Servicio'})),...(data?.products||[]).filter(x=>x.active).map(x=>({key:'p:'+x.id,id:x.id,kind:'product',name:x.name,price:Number(x.price),unit:x.attributes?.unit||'Unidad'}))];
 const permitted=v=>!!session&&(roleViews[session.role]||[]).includes(v);
-const photoFor=view=>({
- maintenanceReport:'clipboard.jpg',monitor:'dashboard.svg',admin:'team.jpg',users:'users.svg',
- catalogImport:'catalog.svg',orders:'tools.jpg',chat:'community.svg',security:'settings.svg',
- dashboard:'engine.jpg',calendar:'agenda.svg'
-}[view]||'repair.jpg');
+const menuScenes={monitor:[0,0],users:[1,0],catalogImport:[0,1],chat:[1,1],security:[0,2],calendar:[1,2],dashboard:[0,0]};
+function menuPhoto(view){
+ const scene=menuScenes[view];
+ if(scene){
+  const [column,row]=scene;
+  return '<svg class="integration-card-photo" viewBox="'+(column*724+3)+' '+(row*362+3)+' 718 356" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><image href="assets/enjoy-menu-photography.jpg" width="1448" height="1086"/></svg>';
+ }
+ const filename={maintenanceReport:'clipboard',admin:'team',orders:'tools'}[view]||'repair';
+ return '<img class="integration-card-photo" src="assets/integration-'+filename+'.jpg" alt="" loading="lazy">';
+}
 const ownerCards=[
  ['Plan de mantenimiento','maintenanceReport','maintenance','Consulte por año, marca, modelo, versión y kilometraje'],
  ['Agendamiento','calendar','calendar','Organice las próximas citas del taller'],
@@ -20,7 +25,7 @@ const ownerCards=[
  ['Panel de control','dashboard','indicators','Citas, mantenimientos y alarmas']
 ];
 const adminCards=[['Plan de mantenimiento','maintenanceReport','maintenance','Consultar repuestos y mano de obra'],['Panel de control','monitor','monitor','Indicadores de todos los talleres socios'],['Talleres','admin','directory','Aceptar, rechazar, retirar y restaurar'],['Usuarios','users','clients','Cuentas y accesos de la plataforma'],['Importar catálogo','catalogImport','products','Excel y CSV por marca, tipo y región'],['Órdenes de la red','orders','services','Supervisar la operación de los talleres'],['Comunidad','chat','chat','Conversaciones de la red'],['Configuración','security','security','Cuenta y respaldo de administración']];
-function home(){const admin=session.role==='admin';return head(admin?'Administración':'Inicio',admin?'Gestione la red, los accesos y la oferta de los talleres.':'Seleccione una tarea para continuar.',admin?'':'<button type="button" class="btn secondary" data-integrated-view="security">Configuración de usuario</button>')+'<section class="integration-hero"><span>'+esc(session.workshop||'Administración de enjoy')+'</span><h2>'+(admin?'Una red conectada. Una gestión central.':'Su taller, en marcha.')+'</h2><p>'+(admin?'Catálogo, talleres y supervisión de la operación.':'Cada vehículo, cada servicio y cada visita en un mismo espacio.')+'</p></section><div class="integration-grid">'+(admin?adminCards:ownerCards).map(([name,v,icon,desc])=>'<button type="button" class="integration-tile" data-integrated-view="'+v+'"><img class="integration-card-photo" src="assets/integration-'+photoFor(v)+'" alt="" loading="lazy"><span class="integration-icon">'+liveIcon(icon)+'</span><strong>'+name+'</strong><small>'+desc+'</small><span class="integration-arrow">↗</span></button>').join('')+(admin?'<button type="button" class="integration-tile" data-action="logout"><span class="integration-icon">'+liveIcon('security')+'</span><strong>Cerrar sesión</strong><small>Salir de su cuenta de forma segura</small></button>':'')+'</div>';}
+function home(){const admin=session.role==='admin';return head(admin?'Administración':'Inicio',admin?'Gestione la red, los accesos y la oferta de los talleres.':'Seleccione una tarea para continuar.',admin?'':'<button type="button" class="btn secondary" data-integrated-view="security">Configuración de usuario</button>')+'<section class="integration-hero"><span>'+esc(session.workshop||'Administración de enjoy')+'</span><h2>'+(admin?'Una red conectada. Una gestión central.':'Su taller, en marcha.')+'</h2><p>'+(admin?'Catálogo, talleres y supervisión de la operación.':'Cada vehículo, cada servicio y cada visita en un mismo espacio.')+'</p></section><div class="integration-grid">'+(admin?adminCards:ownerCards).map(([name,v,icon,desc])=>'<button type="button" class="integration-tile" data-integrated-view="'+v+'">'+menuPhoto(v)+'<span class="integration-icon">'+liveIcon(icon)+'</span><strong>'+name+'</strong><small>'+desc+'</small><span class="integration-arrow">↗</span></button>').join('')+(admin?'<button type="button" class="integration-tile" data-action="logout"><span class="integration-icon">'+liveIcon('security')+'</span><strong>Cerrar sesión</strong><small>Salir de su cuenta de forma segura</small></button>':'')+'</div>';}
 
 function maintenanceOptions(){
  return {clients:data.clients,vehicles:data.vehicles,workshopLogo:safeImage(data.workshopImage),workshopName:session.workshop||(session.role==='admin'?'Administración de enjoy':'Taller de mecánica')};
