@@ -19,7 +19,7 @@ const EnjoyConnection = (() => {
       let message=result.message||result.msg||result.error_description||'';
       if(path.startsWith('/auth/'))message=response.status===429?'Demasiados intentos. Espere unos minutos.':/confirm/i.test(message)?'Confirme su correo electrónico antes de ingresar.':'No se pudo validar la cuenta. Revise el correo y la contraseña.';
       else if(result.code==='42501'&&/^Esta IP no está autorizada\./.test(message)){
-        message='No puedes acceder porque la dirección IP de tu conexión no está autorizada. Pídele al administrador que la registre.';
+        message='La dirección IP de su conexión no está autorizada. Solicite al administrador que la registre para poder ingresar.';
       }
       else if(!/^(Su |El |La |Los |No |Debe |Complete |Ingrese |Registro|Revise |Servicio|Vehículo|Fecha|Permiso|Estado|Identificador|Operación|Seleccione)/.test(message))message='No se pudo completar la operación.';
       const error=Error(message);error.status=response.status;throw error;
