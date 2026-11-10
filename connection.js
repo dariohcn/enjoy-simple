@@ -18,6 +18,9 @@ const EnjoyConnection = (() => {
     if(!response.ok){
       let message=result.message||result.msg||result.error_description||'';
       if(path.startsWith('/auth/'))message=response.status===429?'Demasiados intentos. Espere unos minutos.':/confirm/i.test(message)?'Confirme su correo electrónico antes de ingresar.':'No se pudo validar la cuenta. Revise el correo y la contraseña.';
+      else if(result.code==='42501'&&/^Esta IP no está autorizada\./.test(message)){
+        message='No podés acceder porque la IP de tu conexión no está reconocida. Pedile al administrador que la autorice.';
+      }
       else if(!/^(Su |El |La |Los |No |Debe |Complete |Ingrese |Registro|Revise |Servicio|Vehículo|Fecha|Permiso|Estado|Identificador|Operación|Seleccione)/.test(message))message='No se pudo completar la operación.';
       const error=Error(message);error.status=response.status;throw error;
     }
@@ -43,7 +46,7 @@ const EnjoyConnection = (() => {
     }
     if(path==='login'){
       const result=await request('/auth/v1/token?grant_type=password',{email:body.email.trim(),password:body.password});remember(result);
-      try{return await rpc('session')}catch(e){await api('logout');throw e}
+      try{return await rpc('session')}catch(e){await api('logout').catch(()=>{});throw e}
     }
     if(path==='logout'){
       try{const token=await access();if(token)await request('/auth/v1/logout',undefined,token)}finally{remember(null)}
