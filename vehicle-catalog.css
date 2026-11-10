@@ -12,15 +12,26 @@
 #vehicle-plan-scope [data-scope-status] img{vertical-align:middle}
 @media(max-width:850px){.vehicle-summary-layout{grid-template-columns:minmax(0,1fr)}.vehicle-summary-kpis,.vehicle-network-layout .network-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-/* The navigation drawer is opt-in on every screen size. */
-body:not(.logged-out) .shell{width:100%;margin-left:0}
-body:not(.logged-out) #menu{display:grid;place-items:center}
-body:not(.logged-out) #sidebar{width:min(320px,calc(100% - 48px));position:fixed;inset:0 auto 0 0;z-index:55;transform:translateX(-101%);visibility:hidden;transition:transform .18s ease,visibility .18s}
-body:not(.logged-out).menu-open{overflow:hidden}
-body:not(.logged-out).menu-open #sidebar{transform:none;visibility:visible}
-body:not(.logged-out) #drawer-close{display:grid;place-items:center;position:absolute;right:14px;top:18px;min-width:40px;min-height:40px;z-index:1}
-body:not(.logged-out) #sidebar .brand{padding-right:44px}
-body:not(.logged-out).menu-open #nav-backdrop{display:block;position:fixed;inset:0;z-index:54;background:#152e486e;border:0}
+
+/* Override the legacy fixed sidebar layout in the signed-in workspace. */
+body.platform-adapted.enjoy-refined:not(.logged-out) .shell{width:100%!important;margin-left:0!important}
+body.platform-adapted.enjoy-refined:not(.logged-out) #menu,
+body.platform-adapted.enjoy-refined:not(.logged-out) #drawer-close{display:grid!important;place-items:center;min-width:40px;min-height:40px}
+body.platform-adapted.enjoy-refined:not(.logged-out) #menu{background:#f2f6fa;border:1px solid #dbe6ef;border-radius:6px;color:#24628d}
+body.platform-adapted.enjoy-refined:not(.logged-out) #sidebar{
+ position:fixed!important;inset:0 auto 0 0!important;width:min(320px,calc(100% - 48px))!important;
+ max-width:none!important;height:100dvh!important;transform:translateX(-101%)!important;
+ visibility:hidden!important;pointer-events:none!important;z-index:60;
+ transition:transform .18s ease,visibility .18s
+}
+body.platform-adapted.enjoy-refined:not(.logged-out).menu-open{overflow:hidden}
+body.platform-adapted.enjoy-refined:not(.logged-out).menu-open #sidebar{
+ transform:none!important;visibility:visible!important;pointer-events:auto!important
+}
+body.platform-adapted.enjoy-refined:not(.logged-out) #drawer-close{position:absolute;right:14px;top:18px;z-index:1}
+body.platform-adapted.enjoy-refined:not(.logged-out) #sidebar>.brand{padding-right:44px}
+body.platform-adapted.enjoy-refined:not(.logged-out).menu-open #nav-backdrop{display:block!important;position:fixed;inset:0;z-index:59;background:#152e486e;border:0}
+@media(prefers-reduced-motion:reduce){body.platform-adapted.enjoy-refined:not(.logged-out) #sidebar{transition:none}}
 .vehicle-network-layout .live-stats{display:grid;grid-template-columns:1fr;gap:9px;margin:0}
 .vehicle-network-layout .live-chart-grid{margin-top:0}
 .vehicle-network-detail{min-width:0}

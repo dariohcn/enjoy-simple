@@ -5,9 +5,9 @@ function organizeEnjoyNavigation(){
  nav.replaceChildren();for(const [title,views]of groups){const group=document.createElement('div');group.className='enjoy-nav-group';const label=document.createElement('span');label.className='enjoy-nav-label';label.textContent=title;group.append(label);for(const v of views)if(buttons.has(v))group.append(buttons.get(v));nav.append(group);}
 }
 setNavigation=function(open,returnFocus=true){
- if(!session)return;const small=matchMedia('(max-width:1099px)').matches,expanded=small&&!!open,was=document.body.classList.contains('menu-open');
- document.body.classList.toggle('menu-open',expanded);$('#menu').setAttribute('aria-expanded',String(expanded));$('#sidebar').inert=small&&!expanded;$('.shell').inert=expanded;$('#menu').setAttribute('aria-label',expanded?'Cerrar navegación':'Abrir navegación');
- if(expanded)$('#drawer-close').focus();else if(was&&returnFocus&&small)$('#menu').focus();
+ if(!session)return;const expanded=!!open,was=document.body.classList.contains('menu-open');
+ document.body.classList.toggle('menu-open',expanded);$('#menu').setAttribute('aria-expanded',String(expanded));$('#sidebar').inert=!expanded;$('.shell').inert=expanded;$('#menu').setAttribute('aria-label',expanded?'Cerrar navegación':'Abrir navegación');
+ if(expanded)$('#drawer-close').focus();else if(was&&returnFocus)$('#menu').focus();
 };
 function polishPending(){
  const box=$('#order-pending');if(!box||!session||!['monitor','overview'].includes(view))return;

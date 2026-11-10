@@ -373,6 +373,13 @@ function arrangeNetworkSummary(){
  if(!metrics||!charts||!data.monitor||root.querySelector('.vehicle-network-layout'))return;
  const heading=root.querySelector('.live-title h1,.network-heading h1');
  if(heading)heading.textContent='Panel de control de la red';
+ const title=root.querySelector('.live-title,.network-heading');
+ if(title){
+  const links=document.createElement('div');
+  links.className='actions';
+  links.innerHTML='<button type="button" class="btn" data-integrated-view="catalogImport">Importar catálogo</button><button type="button" class="btn secondary" data-integrated-view="maintenanceReport">Plan de mantenimiento</button>';
+  title.after(links);
+ }
  const layout=document.createElement('div'),detail=document.createElement('div');
  layout.className='vehicle-summary-layout vehicle-network-layout';
  detail.className='vehicle-network-detail';
