@@ -43,3 +43,64 @@ body.platform-adapted.enjoy-refined:not(.logged-out).menu-open #nav-backdrop{dis
 
 #vehicle-import progress{width:100%;height:14px;accent-color:#2378b3}
 #vehicle-import [data-catalog-status]{min-height:1.4em;overflow-wrap:anywhere}
+
+/* Network dashboard: overview first, charts and drill-down below. */
+body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout{display:block;min-width:0;margin-top:12px}
+body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout :is(.live-stats,.network-metrics){
+ display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:0 0 14px;
+}
+body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout .live-stat{
+ min-width:0;min-height:0;padding:12px 13px;display:grid;align-content:start;gap:4px;overflow-wrap:normal;word-break:normal
+}
+body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout .live-stat span{font-size:12px;line-height:1.35}
+body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout .live-stat strong{font-size:25px;line-height:1.15;white-space:nowrap;font-variant-numeric:tabular-nums}
+body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout .live-stat small{font-size:11px;line-height:1.35;overflow-wrap:normal}
+body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout :is(.live-chart-grid,.network-charts){display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;margin:0}
+.vehicle-network-layout .live-chart-grid>.live-card{min-width:0;padding:14px}
+.vehicle-network-layout .live-chart-grid>.live-wide{grid-column:auto}
+.vehicle-network-layout .live-chart-grid>.network-map-card{grid-column:1/-1}
+.vehicle-network-layout .live-card h2{font-size:15px;line-height:1.35}
+.vehicle-network-layout .live-chart-total{margin-top:6px;font-variant-numeric:tabular-nums}
+.vehicle-network-layout .live-state{flex-wrap:wrap;gap:12px;justify-content:flex-start}
+.vehicle-network-layout .live-state>div:last-child{flex:1;min-width:130px}
+.vehicle-network-layout .live-state p{font-size:12px;gap:6px}
+.vehicle-network-layout .live-donut{width:84px;height:84px}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-hero{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+ margin-bottom:12px;padding:16px 18px;border-radius:12px;background:#153c55;
+ background-image:linear-gradient(90deg,#153c55 12%,#153c55ec 62%,#153c55b0),url('assets/integration-engine.jpg');
+ background-position:center,center 49%;background-size:cover;
+}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-hero h1{color:#fff;font-size:clamp(18px,2vw,24px);margin:0}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-hero p{color:#e4eef5;margin:4px 0 0}
+.dashboard-hero-actions{display:flex;flex-wrap:wrap;gap:8px}
+.dashboard-hero-actions .btn{font-size:12px;min-height:36px}
+.vehicle-network-report{margin-top:12px;padding:14px}
+.vehicle-network-report .dashboard-report-count{margin:6px 0 9px;color:#526b7b;font-size:12px}
+.dashboard-table-scroll{overflow:auto;max-height:400px;border:1px solid #dbe5ec;border-radius:8px}
+body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-report .dashboard-detail-table{
+ display:table!important;width:100%!important;min-width:490px!important;table-layout:fixed!important;border-collapse:collapse;margin:0
+}
+.dashboard-detail-table col.date{width:105px}.dashboard-detail-table col.state{width:145px}.dashboard-detail-table col.count{width:65px}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table thead{display:table-header-group!important}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table tbody{display:table-row-group!important}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table tr{display:table-row!important}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table :is(th,td){
+ display:table-cell!important;width:auto!important;min-width:0!important;max-width:none!important;
+ padding:8px 10px!important;text-align:left;line-height:1.35;font-size:12px;word-break:normal!important;overflow-wrap:normal!important;border-bottom:1px solid #e5edf2;
+}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table td::before{display:none!important}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table th{position:sticky;top:0;background:#eef4f8;z-index:1}
+body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table :is(td,th):last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.dashboard-detail-table tbody tr:nth-child(even){background:#f8fafc}
+.dashboard-state{display:inline-block;background:#e9f1f7;border-radius:5px;padding:3px 6px;white-space:nowrap}
+@media(max-width:1050px){
+ body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout :is(.live-stats,.network-metrics){grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout :is(.live-stats,.network-metrics){grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-layout :is(.live-chart-grid,.network-charts){grid-template-columns:minmax(0,1fr)}
+ body.enjoy-refined:not(.logged-out) #contenido .dashboard-hero{padding:12px}
+ .dashboard-detail-table col.date{width:80px}.dashboard-detail-table col.state{width:112px}.dashboard-detail-table col.count{width:55px}
+ body.enjoy-refined:not(.logged-out) #contenido .vehicle-network-report .dashboard-detail-table{min-width:390px!important}
+}

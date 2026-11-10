@@ -376,9 +376,12 @@ function arrangeNetworkSummary(){
  const title=root.querySelector('.live-title,.network-heading');
  if(title){
   const links=document.createElement('div');
-  links.className='actions';
+  links.className='actions dashboard-hero-actions';
   links.innerHTML='<button type="button" class="btn" data-integrated-view="catalogImport">Importar catálogo</button><button type="button" class="btn secondary" data-integrated-view="maintenanceReport">Plan de mantenimiento</button>';
-  title.after(links);
+  title.classList.add('dashboard-hero');
+  const refresh=title.querySelector('[data-action="monitor-refresh"]');
+  if(refresh)links.append(refresh);
+  title.append(links);
  }
  const layout=document.createElement('div'),detail=document.createElement('div');
  layout.className='vehicle-summary-layout vehicle-network-layout';
@@ -396,7 +399,7 @@ function arrangeNetworkSummary(){
   const rows=summary.appointments.filter(row=>!networkReportState||row.status===networkReportState)
    .sort((a,b)=>b.date.localeCompare(a.date)||String(names.get(a.workshop)).localeCompare(String(names.get(b.workshop)),'es'));
   const count=rows.reduce((sum,row)=>sum+Number(row.n||0),0);
-  report.querySelector('[data-network-detail-results]').innerHTML='<p role="status">'+count+' citas en la selección</p>'+(rows.length?table(['Día','Taller','Estado','Citas'],rows.map(row=>'<tr><td>'+escapeHtml(date(row.date))+'</td><td>'+escapeHtml(names.get(row.workshop)||'Taller')+'</td><td>'+escapeHtml(reportStates[row.status]||row.status)+'</td><td>'+Number(row.n||0)+'</td></tr>')):'<p>No hay citas para estos filtros.</p>');
+  report.querySelector('[data-network-detail-results]').innerHTML='<p class="dashboard-report-count" role="status">'+count+' citas en la selección</p>'+(rows.length?'<div class="dashboard-table-scroll" role="region" aria-label="Citas por día, taller y estado" tabindex="0"><table class="dashboard-detail-table"><colgroup><col class="date"><col><col class="state"><col class="count"></colgroup><thead><tr><th scope="col">Día</th><th scope="col">Taller</th><th scope="col">Estado</th><th scope="col">Citas</th></tr></thead><tbody>'+rows.map(row=>'<tr><td>'+escapeHtml(date(row.date))+'</td><td>'+escapeHtml(names.get(row.workshop)||'Taller')+'</td><td><span class="dashboard-state">'+escapeHtml(reportStates[row.status]||row.status)+'</span></td><td>'+Number(row.n||0)+'</td></tr>').join('')+'</tbody></table></div>':'<p>No hay citas para estos filtros.</p>');
   labelTables();
  }
  report.querySelector('[data-network-detail-state]').addEventListener('change',event=>{networkReportState=event.target.value;update();});
