@@ -412,7 +412,7 @@ function arrangeNetworkSummary(){
  if(title){
   const links=document.createElement('div');
   links.className='actions dashboard-hero-actions';
-  links.innerHTML='<button type="button" class="btn" data-integrated-view="catalogImport">Importar catálogo</button><button type="button" class="btn secondary" data-integrated-view="maintenanceReport">Plan de mantenimiento</button>';
+
   title.classList.add('dashboard-hero');
   const refresh=title.querySelector('[data-action="monitor-refresh"]');
   if(refresh)links.append(refresh);
