@@ -138,8 +138,8 @@ function adminView(){
  '<p data-brand-status role="status"></p><button class="btn">Guardar marca</button></form>'+
  '<form data-catalog-form><h2>Cargar catálogo por marca</h2><label>Marca<select name="brand" class="form-select" required></select></label>'+scopeFields+
  '<label>Archivo Excel o CSV<input class="form-control" name="file" type="file" accept=".xlsx,.xls,.csv" required></label>'+
- '<label data-sheet-picker hidden>Hoja de Excel<select name="sheet" class="form-select"></select></label><p>Seleccione la hoja que contiene las partidas. Cada carga actualiza el catálogo activo de la marca, el tipo y la región seleccionados.</p>'+
- '<a download="plantilla-catalogo.csv" href="data:text/csv;charset=utf-8,'+encodeURIComponent(columns.join(';')+'\r\n')+'">Descargar plantilla CSV</a>'+
+ '<label data-sheet-picker hidden>Hoja de Excel<select name="sheet" class="form-select"></select></label><p>Para usar el formato del plan de mantenimiento, cargue el Excel y elija <strong>MATRIZ</strong>. La primera fila debe contener <strong>MODELO, KILOMETRAJE (x 1000), TIPO, NP, DESCRIPCIÓN, CANTIDAD (Hrs/Unidad/Lts) y VUNIT</strong>. En este formato, 35 equivale a 35.000 km. Cada carga actualiza el catálogo activo de la marca, el tipo y la región seleccionados.</p>'+
+ '<a download="plantilla-catalogo.csv" href="data:text/csv;charset=utf-8,'+encodeURIComponent(columns.join(';')+'\r\n')+'">Descargar plantilla para cargas en CSV</a>'+
  '<progress data-import-progress max="4" value="0" aria-label="Avance de la importación" hidden></progress><p data-catalog-status role="status" aria-live="polite"></p><button class="btn">Validar e importar</button><button type="button" class="btn secondary" data-import-confirm hidden>Importar partidas válidas</button></form></div>'+
  '<h2>Catálogos activos por marca</h2><div data-catalog-index role="status">Cargando…</div></section>';
 }
