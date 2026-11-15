@@ -152,7 +152,7 @@ function adminView(){
  '<label>Archivo Excel o CSV<input class="form-control" name="file" type="file" accept=".xlsx,.xls,.csv" required></label>'+
  '<label data-sheet-picker hidden>Hoja de Excel<select name="sheet" class="form-select"></select></label>'+
  '<a download="plantilla-catalogo.csv" href="data:text/csv;charset=utf-8,'+encodeURIComponent('\uFEFFAÑO;MODELO;KILOMETRAJE (x 1000);TIPO;NP;DESCRIPCIÓN;NOMENCLATURA;CANTIDAD (Hrs/Unidad/Lts);VUNIT;SUBTOTAL;CATEGORÍA;APLICA\r\n')+'">Descargar plantilla para cargas en CSV</a>'+
- '<progress data-import-progress max="4" value="0" aria-label="Avance de la importación" hidden></progress><p data-catalog-status role="status" aria-live="polite"></p><button class="btn">Validar e importar</button><button type="button" class="btn secondary" data-import-confirm hidden>Importar partidas válidas</button></form></div>'+
+ '<progress data-import-progress max="4" value="0" aria-label="Avance de la importación" hidden></progress><p data-catalog-status role="status" aria-live="polite"></p><button class="btn">Validar e importar</button><button type="button" class="btn" data-import-confirm hidden>Importar partidas válidas</button></form></div>'+
  '<h2>Catálogos activos por marca</h2><div data-catalog-index role="status">Cargando…</div></section>';
 }
 function wireAdmin(){
@@ -162,6 +162,7 @@ function wireAdmin(){
  const brandForm=host.querySelector('[data-brand-form]'),importForm=host.querySelector('[data-catalog-form]');
  const brandStatus=host.querySelector('[data-brand-status]'),importStatus=host.querySelector('[data-catalog-status]');
  const preview=host.querySelector('[data-logo-preview]');
+ let activeCatalogs=[];
  let logoTimer,logoRequest;
  function showLogo(){
   const url=logoUrl(brandForm.elements.logo.value);
@@ -170,11 +171,12 @@ function wireAdmin(){
  async function refreshIndex(){
   const index=await api('vehicle-catalog-index');
   if(!host.isConnected)return;
+  activeCatalogs=index.imports;
   const select=importForm.elements.brand;
   const current=select.value;
   select.replaceChildren(new Option('Seleccione una marca',''),...index.brands.map(b=>new Option(b.name,b.name)));
   select.value=index.brands.some(b=>b.name===current)?current:'';
-  host.querySelector('[data-catalog-index]').innerHTML=index.imports.length?table(['Marca','Tipo','Región','Archivo','Partidas','Fecha'],index.imports.map(row=>'<tr><td>'+escapeHtml(row.brand)+'</td><td>'+typeLabel[row.vehicle_type]+'</td><td>'+zoneLabel[row.region]+'</td><td>'+escapeHtml(row.filename)+'</td><td>'+Number(row.count)+'</td><td>'+escapeHtml(new Date(row.created_at).toLocaleDateString('es-EC',{timeZone:'America/Guayaquil'}))+'</td></tr>')):'<p>Todavía no hay catálogos importados.</p>';
+  host.querySelector('[data-catalog-index]').innerHTML=index.imports.length?table(['Marca','Tipo','Región','Archivo','Partidas','Fecha','Acción'],index.imports.map(row=>'<tr><td>'+escapeHtml(row.brand)+'</td><td>'+typeLabel[row.vehicle_type]+'</td><td>'+zoneLabel[row.region]+'</td><td>'+escapeHtml(row.filename)+'</td><td>'+Number(row.count)+'</td><td>'+escapeHtml(new Date(row.created_at).toLocaleDateString('es-EC',{timeZone:'America/Guayaquil'}))+'</td><td><button type="button" class="btn secondary" data-edit-catalog="'+escapeHtml(row.id)+'">Editar catálogo</button></td></tr>')):'<p>Todavía no hay catálogos importados.</p>';
   labelTables();
  }
  brandForm.elements.logo.addEventListener('input',()=>{logoRequest?.abort();clearTimeout(logoTimer);showLogo();});
@@ -224,9 +226,9 @@ function wireAdmin(){
   try{
    const result=await api('vehicle-catalog-import',payload);
    stage(4,'Importación completada: '+result.imported.toLocaleString('es-EC')+' partidas publicadas en '+payload.brand+' · '+typeLabel[payload.vehicle_type]+' · '+zoneLabel[payload.region]+'.'+(omissions.length?' Omitidas: '+omissions.length+'.':''));
-   pendingImport=null;confirm.hidden=true;importForm.elements.file.value='';workbook=null;sheetPicker.hidden=true;sheetField.required=false;sheetField.replaceChildren();
+   pendingImport=null;confirm.hidden=true;submit.hidden=false;importForm.elements.file.value='';workbook=null;sheetPicker.hidden=true;sheetField.required=false;sheetField.replaceChildren();
    await refreshIndex().catch(()=>{importStatus.textContent+=' No se pudo actualizar la tabla de catálogos.';});
-  }catch(e){stage(3,'No se pudo confirmar la importación: '+e.message);}
+  }catch(e){progress.hidden=true;importStatus.textContent='No se pudo confirmar la importación: '+e.message;}
   finally{submit.disabled=false;confirm.disabled=false;}
  }
  importForm.elements.file.addEventListener('change',async()=>{
@@ -254,10 +256,25 @@ function wireAdmin(){
   finally{if(token===fileVersion)submit.disabled=false;}
  });
  importForm.addEventListener('change',event=>{
-  pendingImport=null;confirm.hidden=true;
+  pendingImport=null;confirm.hidden=true;submit.hidden=false;
   if(submit.disabled)return;
   progress.hidden=true;
   importStatus.textContent=importForm.elements.file.files[0]?(workbook?'Hoja seleccionada: '+sheetField.value+'. ':'Archivo seleccionado. ')+'Pulse Validar e importar.':'';
+ });
+ host.addEventListener('click',event=>{
+  const button=event.target.closest('[data-edit-catalog]');
+  if(!button||submit.disabled)return;
+  const catalog=activeCatalogs.find(row=>String(row.id)===button.dataset.editCatalog);
+  if(!catalog)return;
+  const fields=importForm.elements;
+  fields.file.value='';
+  fields.file.dispatchEvent(new Event('change',{bubbles:true}));
+  fields.brand.value=catalog.brand;
+  fields.vehicle_type.value=catalog.vehicle_type;
+  currentScope(importForm);
+  if(catalog.vehicle_type==='pesado')fields.region.value=catalog.region;
+  importStatus.textContent='Seleccione el Excel o CSV corregido para actualizar el catálogo de '+catalog.brand+'.';
+  fields.file.focus();
  });
  confirm.addEventListener('click',()=>{if(pendingImport)publish(pendingImport.payload,pendingImport.omissions);});
  importForm.addEventListener('submit',async event=>{
@@ -270,11 +287,13 @@ function wireAdmin(){
    const payload={...scope,brand,filename:file.name,items};
    if(omissions.length){
     pendingImport={payload,omissions};
-    stage(2,brand+' · '+sheet+': '+items.length.toLocaleString('es-EC')+' partidas válidas y '+omissions.length+' con errores. '+omissions.slice(0,8).join(' · ')+'. Todavía no se ha publicado el catálogo.');
+    progress.hidden=true;
+    importStatus.textContent='Validación terminada. Para publicar '+items.length.toLocaleString('es-EC')+' partidas, confirme que desea omitir '+omissions.length+' filas con errores. '+omissions.slice(0,8).join(' · ')+'.';
+    submit.hidden=true;
     confirm.textContent='Importar '+items.length.toLocaleString('es-EC')+' partidas válidas';
     confirm.hidden=false;
    }else await publish(payload,omissions);
-  }catch(e){stage(progress.value,'Importación detenida: '+e.message);}
+  }catch(e){progress.hidden=true;importStatus.textContent='Importación detenida: '+e.message;}
   finally{submit.disabled=false;}
  });
  refreshIndex().catch(e=>{host.querySelector('[data-catalog-index]').textContent=e.message;});
