@@ -42,7 +42,7 @@ icons.monitor=icons.overview;icons.products='<path d="m12 3 9 5v9l-9 5-9-5V8Zm-9
 // Estado vacío estable durante las actualizaciones de la conversación.
 const messageMarkupBeforeEmpty=messageMarkup;messageMarkup=function(){return chatMessages.length?messageMarkupBeforeEmpty():'<p class="live-chat-empty">Aún no hay mensajes en esta conversación.</p>';};
 // La identidad de sesión del servidor determina las vistas disponibles.
-function permittedViews(){return session?.role==='admin'?['monitor','admin','products','users','reminders','security','chat','orders']:['overview','calendar','clients','vehicles','maintenance','services','products','requests','alerts','reminders','indicators','security','chat','orders'];}
+function permittedViews(){return session?.role==='admin'?['monitor','admin','products','reminders','security','chat','orders']:['overview','calendar','clients','vehicles','maintenance','services','products','requests','alerts','reminders','indicators','security','chat','orders'];}
 const roleAwareGo=go;go=function(next){if(!session||!permittedViews().includes(next))return;roleAwareGo(next);};
 let renderedIdentity='';const roleAwareRender=render;render=function(){if(!session)return loginPage();if(!permittedViews().includes(view))view=session.role==='admin'?'adminHome':'overview';if(renderedIdentity!==session.email){chatMembers=[];chatMessages=[];chatRecipient='';chatError='';renderedIdentity=session.email;}roleAwareRender();document.body.dataset.accountRole=session.role;};
 
