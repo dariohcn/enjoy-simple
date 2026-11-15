@@ -426,7 +426,7 @@ function arrangeNetworkSummary(){
  detail.append(charts);
  const priorities=root.querySelector('#order-pending');
  if(priorities)detail.append(priorities);
- const summary=summarizeNetwork(data.workshops,data.monitor,{workshop:monitorWorkshop,scope:monitorScope,days:monitorDays,today:data.monitor.today||isoToday()});
+ const summary=summarizeNetwork(data.workshops,data.monitor,{workshop:monitorWorkshop,scope:monitorScope,region:monitorRegion,province:monitorProvince,days:monitorDays,today:data.monitor.today||isoToday()});
  const names=new Map(summary.partners.map(w=>[w.id,w.name]));
  const report=document.createElement('section');
  report.className='live-card vehicle-network-report';
