@@ -302,7 +302,7 @@ function planView(){
  return '<section id="vehicle-plan-scope" class="card integration-pad"><form class="fields">'+scopeFields+
  '<label>Marca del catálogo<select name="brand" class="form-select" disabled><option value="">Seleccione el tipo</option></select></label></form>'+
  '<p data-scope-status role="status">Elija Liviano o Pesado para consultar un catálogo.</p>'+
- '<button class="btn secondary" data-reference type="button">Consultar referencia original</button></section><div id="vehicle-plan-content"></div>';
+ '</section><div id="vehicle-plan-content"></div>';
 }
 function rowsForPlan(items,brand){
  return items.map(item=>{
@@ -347,10 +347,6 @@ function wirePlan(options){
    if(logo){const image=document.createElement('img');image.src=logo;image.alt='Logo de '+name;image.width=68;image.height=40;image.style.objectFit='contain';status.prepend(image,document.createTextNode(' '));}
    output.innerHTML=window.EnjoyMaintenance.render({...options,catalogRows:rowsForPlan(items,name),catalogLabel:label});
   }catch(e){if(token===sequence&&host.isConnected)status.textContent=e.message;}
- });
- host.querySelector('[data-reference]').addEventListener('click',()=>{
-  form.elements.vehicle_type.value='';form.elements.region.value='';updateScope();status.textContent='Referencia original, sin clasificación por tipo ni región.';
-  output.innerHTML=window.EnjoyMaintenance.render(options);
  });
  api('vehicle-catalog-index').then(result=>{index=result;if(host.isConnected)updateScope();}).catch(e=>{if(host.isConnected)status.textContent=e.message;});
 }
