@@ -15,7 +15,20 @@ function modelYear(code){
 }
 function narrow(rows,key,index){return rows.filter(r=>text(r[index])===filters[key]);}
 function pick(rows,key,index){const vals=unique(rows,index);if(!vals.includes(filters[key]))filters[key]=vals[0]||'';return narrow(rows,key,index);}
-function selection(){let rows=source?.rows||[],choices={};choices.year=[...new Set(rows.map(r=>text(r[16]||modelYear(r[2]))))].sort((a,b)=>b.localeCompare(a,'es',{numeric:true}));if(!choices.year.includes(filters.year))filters.year=choices.year.find(y=>y!=='Sin año indicado')||choices.year[0]||'';rows=rows.filter(r=>text(r[16]||modelYear(r[2]))===filters.year);for(const [key,i] of [['brand',0],['model',1],['code',2],['km',4],['plan',13]]){choices[key]=unique(rows,i);rows=pick(rows,key,i);}if(source?.plans)rows=rows.flatMap(h=>source.plans[h[14]][6].map(index=>{const l=source.items[index];return [h[0],h[1],h[2],h[3],h[4],l[0],l[1],l[2],l[3],l[4],l[5],l[6],l[7],h[13],null,l[8]];}));return {rows,choices};}
+function yearsForLabel(label){
+ const range=label.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
+ if(!range)return [label];
+ const start=Number(range[1]),end=Number(range[2]);
+ if(start<1900||end>2100||start>end)return [label];
+ return Array.from({length:end-start+1},(_,i)=>String(start+i));
+}
+function selection(){let rows=source?.rows||[],choices={};
+ const yearLabel=row=>text(row[16]||modelYear(row[2]));
+ const byLabel=new Map([...new Set(rows.map(yearLabel))].map(label=>[label,yearsForLabel(label)]));
+ choices.year=[...new Set([...byLabel.values()].flat())].sort((a,b)=>b.localeCompare(a,'es-EC',{numeric:true}));
+ if(!choices.year.includes(filters.year))filters.year=choices.year.find(y=>y!=='Sin año indicado')||choices.year[0]||'';
+ rows=rows.filter(row=>byLabel.get(yearLabel(row)).includes(filters.year));
+ for(const [key,i] of [['brand',0],['model',1],['code',2],['km',4],['plan',13]]){choices[key]=unique(rows,i);rows=pick(rows,key,i);}if(source?.plans)rows=rows.flatMap(h=>source.plans[h[14]][6].map(index=>{const l=source.items[index];return [h[0],h[1],h[2],h[3],h[4],l[0],l[1],l[2],l[3],l[4],l[5],l[6],l[7],h[13],null,l[8]];}));return {rows,choices};}
 function visibleRows(rows){const q=filters.search.toLocaleLowerCase('es');return rows.filter(r=>(!filters.type||(filters.type==='labor'?num(r[8])===1:num(r[8])!==1))&&(!q||[r[5],r[6]].join(' ').toLocaleLowerCase('es').includes(q)));}
 function totals(rows,iva=15){const labor=currencySum(rows.filter(r=>num(r[8])===1)),subtotal=currencySum(rows),parts=round(subtotal-labor);const extra=round(subtotal*iva/100);return {labor,parts,subtotal,total:round(subtotal+extra),extra,rate:Math.max(0,...rows.filter(r=>num(r[8])===1).map(r=>num(r[10])))};}
 let manualVehicle={year:'',code:''};
