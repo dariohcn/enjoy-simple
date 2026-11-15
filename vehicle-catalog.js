@@ -62,20 +62,25 @@ function parseRows(rows){
 }
 function parseMatrix(rows){
  const clean=value=>String(value??'').trim();
- const headers=(rows[0]||[]).map(value=>clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase());
+ const headers=(rows[0]||[]).map(value=>clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' '));
  const column=name=>headers.findIndex(header=>header===name||header.startsWith(name+' ('));
  const indexes=['MODELO','KILOMETRAJE','TIPO','NP','DESCRIPCION','CANTIDAD','VUNIT'].map(column);
  if(indexes.some(index=>index<0))throw Error('La hoja MATRIZ no tiene los encabezados de mantenimiento esperados.');
  if(rows.length>20001)throw Error('La hoja supera el máximo de 20.000 partidas.');
  const items=[],omissions=[];
  const number=value=>clean(value)===''?NaN:Number(clean(value).replace(',','.'));
+ const unitPrice=value=>{
+  const price=clean(value).replace(/^\$\s*/, '');
+  const decimal=/^\d{1,3}(?:\.\d{3})+,\d+$/.test(price)?price.replace(/\./g,''):price;
+  return number(decimal);
+ };
  for(let i=1;i<rows.length;i++){
   const row=rows[i]||[];
   if(!row.some(value=>clean(value)))continue;
   const [model,kmText,type,code,description,quantity,price]=indexes.map(index=>row[index]);
   const km=number(kmText)*(headers[indexes[1]].includes('1000')?1000:1);
   const item={anio:null,modelo:clean(model),version:'Sin versión indicada',km,codigo:clean(code),
-   tipo:clean(type).toUpperCase()==='REP'?'R':clean(type).toUpperCase(),descripcion:clean(description),cantidad:number(quantity),precio:number(price)};
+   tipo:clean(type).toUpperCase()==='REP'?'R':clean(type).toUpperCase(),descripcion:clean(description),cantidad:number(quantity),precio:unitPrice(price)};
   const issue=!Number.isFinite(item.precio)||item.precio<0||item.precio>1000000?'precio inválido':
    !(item.cantidad>0&&item.cantidad<=100000)?'cantidad inválida':
    !item.modelo||item.modelo.length>120||!item.codigo||item.codigo.length>80||!item.descripcion||item.descripcion.length>2500||
@@ -138,7 +143,7 @@ function adminView(){
  '<p data-brand-status role="status"></p><button class="btn">Guardar marca</button></form>'+
  '<form data-catalog-form><h2>Cargar catálogo por marca</h2><label>Marca<select name="brand" class="form-select" required></select></label>'+scopeFields+
  '<label>Archivo Excel o CSV<input class="form-control" name="file" type="file" accept=".xlsx,.xls,.csv" required></label>'+
- '<label data-sheet-picker hidden>Hoja de Excel<select name="sheet" class="form-select"></select></label><p>Para usar el formato del plan de mantenimiento, cargue el Excel y elija <strong>MATRIZ</strong>. La primera fila debe contener <strong>MODELO, KILOMETRAJE (x 1000), TIPO, NP, DESCRIPCIÓN, CANTIDAD (Hrs/Unidad/Lts) y VUNIT</strong>. En este formato, 35 equivale a 35.000 km. Cada carga actualiza el catálogo activo de la marca, el tipo y la región seleccionados.</p>'+
+ '<label data-sheet-picker hidden>Hoja de Excel<select name="sheet" class="form-select"></select></label><p>Para usar el formato del plan de mantenimiento, cargue el Excel y elija <strong>MATRIZ</strong>. Use los encabezados del archivo en este orden: <strong>AÑO, MODELO, KILOMETRAJE (x 1000), TIPO, NP, DESCRIPCIÓN, NOMENCLATURA, CANTIDAD (Hrs/Unidad/Lts), VUNIT, SUBTOTAL, CATEGORÍA, APLICA</strong>. En este formato, 35 equivale a 35.000 km. El precio unitario se toma de VUNIT. Cada carga actualiza el catálogo activo de la marca, el tipo y la región seleccionados.</p>'+
  '<a download="plantilla-catalogo.csv" href="data:text/csv;charset=utf-8,'+encodeURIComponent(columns.join(';')+'\r\n')+'">Descargar plantilla para cargas en CSV</a>'+
  '<progress data-import-progress max="4" value="0" aria-label="Avance de la importación" hidden></progress><p data-catalog-status role="status" aria-live="polite"></p><button class="btn">Validar e importar</button><button type="button" class="btn secondary" data-import-confirm hidden>Importar partidas válidas</button></form></div>'+
  '<h2>Catálogos activos por marca</h2><div data-catalog-index role="status">Cargando…</div></section>';
