@@ -67,6 +67,8 @@ function parseMatrix(rows){
  const indexes=['MODELO','KILOMETRAJE','TIPO','NP','DESCRIPCION','CANTIDAD','VUNIT'].map(column);
  if(indexes.some(index=>index<0))throw Error('El archivo no tiene los encabezados de mantenimiento esperados.');
  if(rows.length>20001)throw Error('La hoja supera el máximo de 20.000 partidas.');
+ const yearColumn=column('ANO');
+ const versionColumn=column('VERSION');
  const items=[],omissions=[];
  const number=value=>clean(value)===''?NaN:Number(clean(value).replace(',','.'));
  const unitPrice=value=>{
@@ -79,9 +81,11 @@ function parseMatrix(rows){
   if(!row.some(value=>clean(value)))continue;
   const [model,kmText,type,code,description,quantity,price]=indexes.map(index=>row[index]);
   const km=number(kmText)*(headers[indexes[1]].includes('1000')?1000:1);
-  const item={anio:null,modelo:clean(model),version:'Sin versión indicada',km,codigo:clean(code),
+  const year=clean(row[yearColumn]);
+  const version=clean(row[versionColumn]);
+  const item={anio:null,anio_etiqueta:year,modelo:clean(model),version:version||'Sin versión indicada',km,codigo:clean(code),
    tipo:clean(type).toUpperCase()==='REP'?'R':clean(type).toUpperCase(),descripcion:clean(description),cantidad:number(quantity),precio:unitPrice(price)};
-  const issue=!Number.isFinite(item.precio)||item.precio<0||item.precio>1000000?'precio inválido':
+  const issue=year.length>40?'año fuera de rango':version.length>120?'versión demasiado larga':!Number.isFinite(item.precio)||item.precio<0||item.precio>1000000?'precio inválido':
    !(item.cantidad>0&&item.cantidad<=100000)?'cantidad inválida':
    !item.modelo||item.modelo.length>120||!item.codigo||item.codigo.length>80||!item.descripcion||item.descripcion.length>2500||
    !Number.isInteger(km)||km<0||km>2000000||!['MO','R'].includes(item.tipo)?'datos incompletos o fuera de rango':'';
@@ -308,7 +312,8 @@ function rowsForPlan(items,brand){
  return items.map(item=>{
   const kind=item.tipo==='MO'?1:0;
   const total=Math.round(item.cantidad*item.precio*100)/100;
-  return [brand,item.modelo,item.version,'Mantenimiento '+item.km.toLocaleString('es-EC')+' km',item.km,item.codigo,item.descripcion,item.cantidad,kind,item.precio,kind?item.precio:0,0,total,JSON.stringify([item.anio,item.modelo,item.version,item.km]),null,item.cantidad,item.anio??'Sin año indicado'];
+  const year=item.anio_etiqueta||item.anio||'Sin año indicado';
+  return [brand,item.modelo,item.version,'Mantenimiento '+item.km.toLocaleString('es-EC')+' km',item.km,item.codigo,item.descripcion,item.cantidad,kind,item.precio,kind?item.precio:0,0,total,JSON.stringify([year,item.modelo,item.version,item.km]),null,item.cantidad,year];
  });
 }
 function wirePlan(options){
