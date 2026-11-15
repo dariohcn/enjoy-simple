@@ -165,11 +165,33 @@ let workshopList='active';
 function workshopAdministration(){
  const active=data.workshops.filter(w=>!w.deleted_at),removed=data.workshops.filter(w=>w.deleted_at),pending=active.filter(w=>w.status==='pending'),rows=workshopList==='removed'?removed:active;
  return head('Talleres socios','Autorización, permisos y control de acceso a la red.')+`<div class="stats"><div class="stat"><div class="stat-top">Talleres autorizados</div><strong>${active.filter(w=>w.status==='approved').length}</strong><small>Activos en la red</small></div><div class="stat"><div class="stat-top">Solicitudes pendientes</div><strong>${pending.length}</strong><small>Requieren revisión</small></div><div class="stat"><div class="stat-top">Talleres eliminados</div><strong>${removed.length}</strong><small>Acceso deshabilitado · historial conservado</small></div></div>
- ${pending.length&&workshopList==='active'?`<div class="approval-grid">${pending.map(w=>`<article class="card approval"><span class="badge amber">Pendiente</span><h3>${esc(w.name)}</h3><p>${esc(w.owner)} · ${esc(w.location)}</p><p>${esc(w.email)}</p><div class="actions">${button('Aceptar taller','approve',w.id)}${button('Rechazar','reject',w.id,true)}</div></article>`).join('')}</div>`:''}
  <div class="workshop-tabs" role="group" aria-label="Lista de talleres"><button class="${workshopList==='active'?'selected':''}" data-action="workshop-list" data-id="active">Activos y solicitudes <span>${active.length}</span></button><button class="${workshopList==='removed'?'selected':''}" data-action="workshop-list" data-id="removed">Eliminados <span>${removed.length}</span></button></div>
  ${workshopList==='removed'?'<div class="notice">Estos talleres no pueden ingresar. Puede restaurarlos; sus clientes, vehículos e historial permanecen conservados. Los recordatorios cancelados no se reactivan automáticamente.</div>':''}
- ${table(['Taller','Responsable','Estado','Catálogo','Productos','Acciones'],rows.map(w=>`<tr><td><button class="text-button" data-action="workshop-detail" data-id="${esc(w.id)}">${safeImage(w.image)?'<img class="workshop-thumb" src="'+safeImage(w.image)+'" alt="Imagen del taller">':''}${esc(w.name)} ↗</button>${w.is_demo?'<span class="badge demo-badge">Ejemplo · datos ficticios</span>':''}<small>${esc(w.location)}</small></td><td>${esc(w.owner)}<small>${esc(w.email)}</small></td><td><span class="badge ${w.deleted_at?'red':w.status==='approved'?'green':w.status==='rejected'?'red':'amber'}">${w.deleted_at?'Eliminado':({approved:'Autorizado',rejected:'Rechazado',pending:'Pendiente'})[w.status]}</span></td><td><label><input type="checkbox" data-permission="${esc(w.id)}" ${w.catalog?'checked':''} ${w.status!=='approved'||w.deleted_at?'disabled':''}> Permitir edición</label></td><td>${productPermissionControl(w)}</td><td>${workshopActions(w)}</td></tr>`))}
- <p class="network-footnote">Los talleres marcados como ejemplo contienen registros ficticios y no tienen cuentas de acceso asociadas.</p>`;
+ <div class="workshop-compact-list">${rows.map(w=>{
+  const logo=safeImage(w.image);
+  const activo=w.status==='approved'&&!w.deleted_at;
+  const estado=w.deleted_at?'Eliminado':({approved:'Autorizado',rejected:'Rechazado',pending:'Pendiente'})[w.status];
+  const color=w.deleted_at||w.status==='rejected'?'red':activo?'green':'amber';
+  return `<article class="card workshop-compact">
+   <div class="workshop-compact-main">
+    ${logo?`<img class="workshop-compact-logo" src="${logo}" alt="">`:''}
+    <div class="workshop-compact-identity">
+     <button class="text-button" data-action="workshop-detail" data-id="${esc(w.id)}">${esc(w.name)} ↗</button>
+     <small>${[w.location,w.owner,w.email].filter(Boolean).map(esc).join(' · ')}</small>
+     ${w.is_demo?'<small>Ejemplo · datos ficticios</small>':''}
+    </div>
+    <span class="badge ${color}">${estado}</span>
+    ${workshopActions(w)}
+   </div>
+   ${activo?`<details class="workshop-compact-permissions"><summary>Permisos del taller</summary>
+    <div class="workshop-compact-options">
+     <label><input type="checkbox" data-permission="${esc(w.id)}" ${w.catalog?'checked':''}> Editar catálogo del taller</label>
+     <label>Permiso para productos ${productPermissionControl(w)}</label>
+    </div>
+    <small>Estos permisos se aplican en el espacio del taller.</small>
+   </details>`:''}
+  </article>`;
+ }).join('')||'<p>No hay talleres en esta lista.</p>'}</div>`;
 }
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-action]');if(!b||session?.role!=='admin')return;

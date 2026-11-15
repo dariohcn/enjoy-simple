@@ -23,3 +23,15 @@
 .integration-identity img{width:56px;height:56px;flex:none;object-fit:contain;padding:5px;border-radius:10px;background:#fff}
 .integration-hero-workshop .integration-identity span,.integration-hero-workshop h2{color:#fff}
 .integration-hero-workshop p{color:#e6eff5}
+
+.workshop-compact-list{display:grid;gap:10px}
+.workshop-compact{padding:14px 16px}
+.workshop-compact-main{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px}
+.workshop-compact-logo{width:42px;height:42px;flex:none;object-fit:contain;border:1px solid #d7e3ee;border-radius:7px;background:#fff}
+.workshop-compact-identity{min-width:0;flex:1 1 16rem;overflow-wrap:anywhere}
+.workshop-compact-identity small,.workshop-compact-permissions small{display:block}
+.workshop-compact .network-workshop-actions{display:flex;flex-wrap:wrap;gap:6px}
+.workshop-compact-permissions{margin-top:10px;padding-top:8px;border-top:1px solid #e1e9f0}
+.workshop-compact-permissions summary{width:fit-content;cursor:pointer;color:#255d88;font-weight:600}
+.workshop-compact-options{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;margin:10px 0}
+.workshop-compact-options select{width:auto;max-width:100%}
