@@ -358,7 +358,7 @@ function wirePlan(options){
    const label=name+' · '+typeLabel[scope.vehicle_type]+' · '+zoneLabel[scope.region];
    status.textContent=label;
    if(logo){const image=document.createElement('img');image.src=logo;image.alt='Logo de '+name;image.width=68;image.height=40;image.style.objectFit='contain';status.prepend(image,document.createTextNode(' '));}
-   output.innerHTML=window.EnjoyMaintenance.render({...options,catalogRows:rowsForPlan(items,name),catalogLabel:label});
+   output.innerHTML=window.EnjoyMaintenance.render({...options,catalogRows:rowsForPlan(items,name),catalogLabel:label,vehicleBrandLogo:logo});
   }catch(e){if(token===sequence&&host.isConnected)status.textContent=e.message;}
  });
  api('vehicle-catalog-index').then(result=>{index=result;if(host.isConnected)updateScope();}).catch(e=>{if(host.isConnected)status.textContent=e.message;});

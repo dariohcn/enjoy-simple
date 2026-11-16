@@ -140,3 +140,6 @@
 #contenido .nm-source-matrix :is(th,td){padding:7px 10px;text-align:left;vertical-align:top;border-bottom:1px solid #e1e8ef}
 #contenido .nm-source-matrix th{font-size:.78rem;background:#eef3f8;color:#26455e}
 #contenido .nm-source-matrix :is(td,th):is(:nth-child(3),:nth-child(8),:nth-child(9),:nth-child(10)){text-align:right;font-variant-numeric:tabular-nums}
+
+.nm-proforma-brand .nm-company-logo{justify-self:center;min-width:0;display:grid;justify-items:center;gap:3px;color:#203c51}
+.nm-proforma-brand .nm-company-logo span{overflow-wrap:anywhere;font-size:11px;text-align:center}

@@ -33,10 +33,10 @@ function visibleRows(rows){const q=filters.search.toLocaleLowerCase('es');return
 function totals(rows,iva=15){const labor=currencySum(rows.filter(r=>num(r[8])===1)),subtotal=currencySum(rows),parts=round(subtotal-labor);const extra=round(subtotal*iva/100);return {labor,parts,subtotal,total:round(subtotal+extra),extra,rate:Math.max(0,...rows.filter(r=>num(r[8])===1).map(r=>num(r[10])))};}
 function option(key,values,label,format=x=>x){
  const missing={year:'Sin año indicado',code:'Sin versión indicada'}[key];
- const choices=missing?values.filter(value=>value!==missing):values;
- const options=choices.length?choices.map(value=>'<option value="'+safe(value)+'" '+(value===filters[key]?'selected':'')+'>'+safe(format(value))+'</option>').join(''):
+ const choices=key==='code'?values.filter(value=>value!==missing):values;
+ const options=choices.length?choices.map(value=>'<option value="'+safe(value)+'" '+(value===filters[key]?'selected':'')+'>'+safe(key==='year'&&value===missing?'Sin año en el Excel':format(value))+'</option>').join(''):
   '<option>'+safe(values.length&&missing?missing+' en el catálogo':'Sin opciones')+'</option>';
- return '<label>'+label+'<select class="form-select" data-nm-filter="'+key+'" '+(!choices.length?'disabled':'')+'>'+options+'</select></label>';
+ return '<label>'+label+'<select class="form-select" data-nm-filter="'+key+'" '+(!choices.length||(key==='year'&&choices.length===1&&choices[0]===missing)?'disabled':'')+'>'+options+'</select></label>';
 }
 function stat(label,value,tone,detail){return '<article class="nm-stat '+tone+'"><span>'+label+'</span><strong>'+usd(value)+'</strong><small>'+detail+'</small></article>';}
 const encabezadosMatriz=['AÑO','MODELO','KILOMETRAJE (x 1000)','TIPO','NP','DESCRIPCIÓN','NOMENCLATURA','CANTIDAD (Hrs/Unidad/Lts)','VUNIT','SUBTOTAL','CATEGORÍA','APLICA'];
@@ -54,8 +54,8 @@ function body(){
  if(!source)return '<div class="nm-state" role="status">'+(failure?'<strong>No se pudo cargar el tarifario.</strong><p>'+safe(failure)+'</p><button class="btn secondary" data-nm-retry>Reintentar</button>':'<span class="nm-loading"></span><strong>Cargando planes de mantenimiento…</strong>')+'</div>';
  const {rows:planRows,choices}=selection(),rows=planRows,t=totals(rows),part=planRows[0];
  const plans=choices.plan.map(id=>[id,source.rows.find(r=>text(r[13])===id&&text(r[2])===filters.code)?.[3]||id]);
- return '<div class="nm-filterbar">'+option('year',choices.year,'Año')+option('brand',choices.brand,'Marca')+option('model',choices.model,'Modelo')+option('code',choices.code,'Versión')+option('km',choices.km,'Kilometraje',v=>v?Number(v).toLocaleString('es-EC')+' km':'Sin intervalo')+'<button class="btn secondary" data-nm-reset>Restablecer</button></div>'+
- '<div class="nm-context"><div><span class="nm-eyebrow">PLAN SELECCIONADO</span><h2>'+safe(part?.[3]||'Sin partidas')+'</h2><p>'+safe(filters.brand)+' · '+safe(filters.model)+' · '+safe(filters.code)+'</p></div>'+(plans.length>1?option('plan',plans.map(x=>x[0]),'Variante de plan',id=>plans.find(x=>x[0]===id)[1]):'<span class="nm-tag">'+planRows.length+' partidas en el plan</span>')+'</div>'+
+ return '<div class="nm-filterbar">'+option('year',choices.year,'Año')+option('brand',choices.brand,'Marca')+option('model',choices.model,'Modelo')+ (choices.code.some(code=>code!=='Sin versión indicada')?option('code',choices.code,'Versión'):'')+option('km',choices.km,'Kilometraje',v=>v?Number(v).toLocaleString('es-EC')+' km':'Sin intervalo')+'<button class="btn secondary" data-nm-reset>Restablecer</button></div>'+
+ '<div class="nm-context"><div><span class="nm-eyebrow">PLAN SELECCIONADO</span><h2>'+safe(part?.[3]||'Sin partidas')+'</h2><p>'+safe(filters.brand)+' · '+safe(filters.model)+' · '+(filters.code&&filters.code!=='Sin versión indicada'?safe(filters.code):'')+'</p></div>'+(plans.length>1?option('plan',plans.map(x=>x[0]),'Variante de plan',id=>plans.find(x=>x[0]===id)[1]):'<span class="nm-tag">'+planRows.length+' partidas en el plan</span>')+'</div>'+
  matrizPlan(planRows)+
  '<section id="nm-proforma-editor" aria-label="Rubros editables de la proforma"></section><div class="nm-layout"><div class="nm-drawer"><button class="btn secondary nm-drawer-tab" type="button" data-nm-totals aria-controls="nm-totals">Totales</button><aside id="nm-totals" class="nm-stats" aria-label="Totales de la proforma">'+stat('Valor hora máximo',t.rate,'nm-slate','Tarifa de mano de obra')+stat('Mano de obra',t.labor,'nm-blue','Operaciones de la proforma')+stat('Repuestos e insumos',t.parts,'nm-teal','Partidas de la proforma')+stat('Subtotal',t.subtotal,'nm-slate','Suma de las partidas de la proforma')+stat('Total de referencia',t.total,'nm-total','Incluye el IVA seleccionado en la proforma')+'</aside></div>'+
  '</div>'+
@@ -103,12 +103,15 @@ function connectVehicleLookup(form){
  chooser.addEventListener('change',()=>{if(chooser.value!=='')apply(options[Number(chooser.value)]);});
 }
 
+let vehicleBrandLogo='';
 function proformaBrandHeader(){
  const name=workshopName||'Taller de mecánica';
- const logo=/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/=]+$/.test(workshopLogo)&&workshopLogo.length<=75000
-  ?`<img src="${safe(workshopLogo)}" alt="Logo de ${safe(name)}">`
+ const brand=filters.brand;
+ const workshop=/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/=]+$/.test(workshopLogo)&&workshopLogo.length<=75000
+  ?'<img src="'+safe(workshopLogo)+'" alt="Logo de '+safe(name)+'">'
   :'';
- return `<div class="nm-proforma-brand"><strong class="nm-enjoy-mark">enjoy</strong><span>${safe(name)}</span><div class="nm-company-logo">${logo}</div></div>`;
+ const logo=vehicleBrandLogo?'<img src="'+safe(vehicleBrandLogo)+'" alt="Logo de '+safe(brand)+'">':'';
+ return '<div class="nm-proforma-brand"><div class="nm-company-logo">'+workshop+'<span>'+safe(name)+'</span></div><strong class="nm-enjoy-mark">enjoy</strong><div class="nm-company-logo">'+logo+'<span>'+safe(brand)+'</span></div></div>';
 }
 
 function vehicleDescription(){
@@ -298,7 +301,7 @@ async function load(){
  pending=(async()=>{const response=await fetch('assets/maintenance-reference.json.gz?v=1');if(!response.ok)throw Error('Respuesta '+response.status);if(!window.DecompressionStream)throw Error('Actualice su navegador para consultar el tarifario.');const stream=response.body.pipeThrough(new DecompressionStream('gzip'));const json=await new Response(stream).json();if(json.version!==2||!Array.isArray(json.plans)||!json.plans.length||!Array.isArray(json.items)||json.columns?.length!==16)throw Error('El archivo de planes no es válido.');referenceSource=json;referenceSource.rows=json.plans.map((p,i)=>[p[0],p[1],p[2],p[3],p[4],null,null,null,null,null,null,null,null,p[5],i,null]);if(!importedCatalog)source=referenceSource;})().catch(e=>{failure=e.message;}).finally(()=>{pending=null;paint();});
  return pending;
 }
-function render(options={}){importedCatalog=Array.isArray(options.catalogRows);catalogLabel=options.catalogLabel||'';source=importedCatalog?{rows:options.catalogRows}:referenceSource;workshopName=options.workshopName||'';workshopLogo=options.workshopLogo||'';registeredClients=options.clients||[];registeredVehicles=options.vehicles||[];setTimeout(()=>{load();mountProforma();},0);return '<section id="native-maintenance" class="native-maintenance">'+body()+'</section>';}
+function render(options={}){vehicleBrandLogo=options.vehicleBrandLogo||'';importedCatalog=Array.isArray(options.catalogRows);catalogLabel=options.catalogLabel||'';source=importedCatalog?{rows:options.catalogRows}:referenceSource;workshopName=options.workshopName||'';workshopLogo=options.workshopLogo||'';registeredClients=options.clients||[];registeredVehicles=options.vehicles||[];setTimeout(()=>{load();mountProforma();},0);return '<section id="native-maintenance" class="native-maintenance">'+body()+'</section>';}
 document.addEventListener('change',e=>{const key=e.target.dataset.nmFilter;if(!key||!source)return;
  filters[key]=e.target.value;
  const order=['year','brand','model','code','km','plan'],index=order.indexOf(key);
