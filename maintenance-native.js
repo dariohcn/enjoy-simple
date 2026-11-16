@@ -23,7 +23,7 @@ function selectedYear(){
   : filters.year;
 }
 function yearsForLabel(label){
- const range=label.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
+ const range=label.trim().match(/^(\d{4})\s*(?:[-‐‑‒–—−]|a|al|hasta)\s*(\d{4})$/i);
  if(!range)return [label];
  const start=Number(range[1]),end=Number(range[2]);
  if(start<1900||end>2100||start>end)return [label];
@@ -32,7 +32,10 @@ function yearsForLabel(label){
 function selection(){let rows=source?.rows||[],choices={};
  const yearLabel=row=>text(row[16]||modelYear(row[2]));
  const byLabel=new Map([...new Set(rows.map(yearLabel))].map(label=>[label,yearsForLabel(label)]));
- choices.year=[...new Set([...byLabel.values()].flat())].filter(year=>/^\d{4}$/.test(year)).sort((a,b)=>Number(b)-Number(a));
+ const availableYears=[...new Set([...byLabel.values()].flat())].filter(year=>year&&year!=='Sin año indicado');
+ const numericYears=availableYears.filter(year=>/^\d{4}$/.test(year)).sort((a,b)=>Number(b)-Number(a));
+ const otherLabels=availableYears.filter(year=>!/^\d{4}$/.test(year)).sort((a,b)=>a.localeCompare(b,'es-EC',{numeric:true}));
+ choices.year=[...numericYears,...otherLabels];
  if(rows.length)choices.year.push(otherYear);
  if(!choices.year.includes(filters.year))filters.year='';
  const year=selectedYear();
