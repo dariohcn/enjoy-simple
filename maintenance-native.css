@@ -127,7 +127,7 @@
 .nm-proforma-brand{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(6px,2vw,20px);align-items:center;min-height:54px;text-align:center}
 .nm-enjoy-mark{justify-self:center;color:#173d55;font-size:clamp(18px,3vw,26px);letter-spacing:-.04em;text-transform:none}
 .nm-company-logo{justify-self:end;max-width:100%}
-.nm-company-logo img{display:block;width:min(110px,100%);height:52px;object-fit:contain}
+.nm-company-logo img{display:block;width:min(110px,100%);height:52px;object-fit:contain;background:transparent;mix-blend-mode:multiply}
 @media print{
  #integration-print .nm-proforma-brand{min-height:45px}
  #integration-print .nm-enjoy-mark{font-size:20pt}
