@@ -44,19 +44,12 @@ function datosMatriz(row){
  const origen=row[17]||{};
  return [row[16]==='Sin año indicado'?'':row[16],row[1],num(row[4])/1000,origen.tipo||(num(row[8])===1?'MO':'REP'),row[5],row[6],origen.nomenclatura,row[7],row[9],origen.subtotal??row[12],origen.categoria,origen.aplica];
 }
-function matrizPlan(rows){
- if(!importedCatalog||!rows.length)return '';
- const headings=encabezadosMatriz.map(label=>'<th scope="col">'+safe(label)+'</th>').join('');
- const cells=rows.map(row=>'<tr>'+datosMatriz(row).map((value,index)=>'<td>'+safe([8,9].includes(index)?usd(value):value??'—')+'</td>').join('')+'</tr>').join('');
- return '<section class="card nm-source-matrix"><h2>Detalle del plan de mantenimiento</h2><div class="nm-form-scroll" role="region" aria-label="Partidas del catálogo" tabindex="0"><table><thead><tr>'+headings+'</tr></thead><tbody>'+cells+'</tbody></table></div></section>';
-}
 function body(){
  if(!source)return '<div class="nm-state" role="status">'+(failure?'<strong>No se pudo cargar el tarifario.</strong><p>'+safe(failure)+'</p><button class="btn secondary" data-nm-retry>Reintentar</button>':'<span class="nm-loading"></span><strong>Cargando planes de mantenimiento…</strong>')+'</div>';
  const {rows:planRows,choices}=selection(),rows=planRows,t=totals(rows),part=planRows[0];
  const plans=choices.plan.map(id=>[id,source.rows.find(r=>text(r[13])===id&&text(r[2])===filters.code)?.[3]||id]);
  return '<div class="nm-filterbar">'+option('year',choices.year,'Año')+option('brand',choices.brand,'Marca')+option('model',choices.model,'Modelo')+ (choices.code.some(code=>code!=='Sin versión indicada')?option('code',choices.code,'Versión'):'')+option('km',choices.km,'Kilometraje',v=>v?Number(v).toLocaleString('es-EC')+' km':'Sin intervalo')+'<button class="btn secondary" data-nm-reset>Restablecer</button></div>'+
  '<div class="nm-context"><div><span class="nm-eyebrow">PLAN SELECCIONADO</span><h2>'+safe(part?.[3]||'Sin partidas')+'</h2><p>'+safe(filters.brand)+' · '+safe(filters.model)+' · '+(filters.code&&filters.code!=='Sin versión indicada'?safe(filters.code):'')+'</p></div>'+(plans.length>1?option('plan',plans.map(x=>x[0]),'Variante de plan',id=>plans.find(x=>x[0]===id)[1]):'<span class="nm-tag">'+planRows.length+' partidas en el plan</span>')+'</div>'+
- matrizPlan(planRows)+
  '<section id="nm-proforma-editor" aria-label="Rubros editables de la proforma"></section><div class="nm-layout"><div class="nm-drawer"><button class="btn secondary nm-drawer-tab" type="button" data-nm-totals aria-controls="nm-totals">Totales</button><aside id="nm-totals" class="nm-stats" aria-label="Totales de la proforma">'+stat('Valor hora máximo',t.rate,'nm-slate','Tarifa de mano de obra')+stat('Mano de obra',t.labor,'nm-blue','Operaciones de la proforma')+stat('Repuestos e insumos',t.parts,'nm-teal','Partidas de la proforma')+stat('Subtotal',t.subtotal,'nm-slate','Suma de las partidas de la proforma')+stat('Total de referencia',t.total,'nm-total','Incluye el IVA seleccionado en la proforma')+'</aside></div>'+
  '</div>'+
  (catalogLabel?'<p class="nm-footnote">Catálogo importado · '+safe(catalogLabel)+'</p>':'<p class="nm-footnote">Tarifario de referencia del informe proporcionado · última actualización de origen: 26/11/2025. Se consulta una sola versión y un solo plan para evitar sumar vehículos distintos. El IVA se puede ajustar en cada proforma.</p>');
@@ -107,11 +100,12 @@ let vehicleBrandLogo='';
 function proformaBrandHeader(){
  const name=workshopName||'Taller de mecánica';
  const brand=filters.brand;
+ const shopLabel=/^Administración de enjoy$/i.test(name)?'':name;
  const workshop=/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/=]+$/.test(workshopLogo)&&workshopLogo.length<=75000
   ?'<img src="'+safe(workshopLogo)+'" alt="Logo de '+safe(name)+'">'
   :'';
  const logo=vehicleBrandLogo?'<img src="'+safe(vehicleBrandLogo)+'" alt="Logo de '+safe(brand)+'">':'';
- return '<div class="nm-proforma-brand"><div class="nm-company-logo">'+workshop+'<span>'+safe(name)+'</span></div><strong class="nm-enjoy-mark">enjoy</strong><div class="nm-company-logo">'+logo+'<span>'+safe(brand)+'</span></div></div>';
+ return '<div class="nm-proforma-brand"><div class="nm-company-logo">'+workshop+(shopLabel?'<span>'+safe(shopLabel)+'</span>':'')+'</div><strong class="nm-enjoy-mark">enjoy</strong><div class="nm-company-logo">'+logo+'<span>'+safe(brand)+'</span></div></div>';
 }
 
 function vehicleDescription(){
@@ -133,7 +127,7 @@ function mountProforma(){
  const vehicleLabel=vehicleDescription();
  dialog.innerHTML=`<form>
   <div class="nm-plan-toolbar">
-   <div><h2>Plan de mantenimiento generado</h2><p data-plan-mode>Plan estándar cargado para el vehículo y kilometraje seleccionados.</p></div>
+   <div><h2>Proforma</h2><p data-plan-mode hidden></p></div>
    <div class="nm-actions"><button type="button" class="btn" data-edit-plan aria-pressed="false">Modificar plan</button><button type="button" class="btn secondary" data-nm-export>Descargar estándar (CSV)</button></div>
   </div>
   <table class="nm-form-header"><tbody>
@@ -230,7 +224,9 @@ function mountProforma(){
   dialog.dataset.editing=String(editing);
   editButton.setAttribute('aria-pressed',String(editing));
   editButton.textContent=editing?'Terminar edición':'Modificar plan';
-  dialog.querySelector('[data-plan-mode]').textContent=editing?'Agregue, quite o ajuste las partidas de esta proforma.':'Revise el plan generado antes de imprimir.';
+  const instructions=dialog.querySelector('[data-plan-mode]');
+  instructions.hidden=!editing;
+  instructions.textContent=editing?'Agregue, quite o ajuste las partidas de esta proforma.':'';
   for(const input of editor.querySelectorAll('input'))input.readOnly=!editing;
  };
  host.addEventListener('nm-refresh-totals',refreshTotal);
