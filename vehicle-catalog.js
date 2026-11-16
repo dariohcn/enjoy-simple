@@ -69,6 +69,10 @@ function parseMatrix(rows){
  if(rows.length>20001)throw Error('La hoja supera el máximo de 20.000 partidas.');
  const yearColumn=column('ANO');
  const versionColumn=column('VERSION');
+ const nomenclaturaColumn=column('NOMENCLATURA');
+ const subtotalColumn=column('SUBTOTAL');
+ const categoriaColumn=column('CATEGORIA');
+ const aplicaColumn=column('APLICA');
  const items=[],omissions=[];
  const number=value=>clean(value)===''?NaN:Number(clean(value).replace(',','.'));
  const unitPrice=value=>{
@@ -85,6 +89,8 @@ function parseMatrix(rows){
   const version=clean(row[versionColumn]);
   const item={anio:null,anio_etiqueta:year,modelo:clean(model),version:version||'Sin versión indicada',km,codigo:clean(code),
    tipo:clean(type).toUpperCase()==='REP'?'R':clean(type).toUpperCase(),descripcion:clean(description),cantidad:number(quantity),precio:unitPrice(price)};
+  const subtotal=unitPrice(row[subtotalColumn]);
+  Object.assign(item,{nomenclatura:clean(row[nomenclaturaColumn]),subtotal_origen:Number.isFinite(subtotal)?subtotal:null,categoria:clean(row[categoriaColumn]),aplica:clean(row[aplicaColumn]),tipo_origen:clean(type).toUpperCase()});
   const issue=year.length>40?'año fuera de rango':version.length>120?'versión demasiado larga':!Number.isFinite(item.precio)||item.precio<0||item.precio>1000000?'precio inválido':
    !(item.cantidad>0&&item.cantidad<=100000)?'cantidad inválida':
    !item.modelo||item.modelo.length>120||!item.codigo||item.codigo.length>80||!item.descripcion||item.descripcion.length>2500||
@@ -313,7 +319,9 @@ function rowsForPlan(items,brand){
   const kind=item.tipo==='MO'?1:0;
   const total=Math.round(item.cantidad*item.precio*100)/100;
   const year=item.anio_etiqueta||item.anio||'Sin año indicado';
-  return [brand,item.modelo,item.version,'Mantenimiento '+item.km.toLocaleString('es-EC')+' km',item.km,item.codigo,item.descripcion,item.cantidad,kind,item.precio,kind?item.precio:0,0,total,JSON.stringify([year,item.modelo,item.version,item.km]),null,item.cantidad,year];
+  return [brand,item.modelo,item.version,'Mantenimiento '+item.km.toLocaleString('es-EC')+' km',item.km,item.codigo,item.descripcion,item.cantidad,kind,item.precio,kind?item.precio:0,0,total,JSON.stringify([year,item.modelo,item.version,item.km]),null,item.cantidad,year,{
+   nomenclatura:item.nomenclatura,subtotal:item.subtotal_origen,categoria:item.categoria,aplica:item.aplica,tipo:item.tipo_origen
+  }];
  });
 }
 function wirePlan(options){

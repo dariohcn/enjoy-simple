@@ -133,3 +133,10 @@
  #integration-print .nm-enjoy-mark{font-size:20pt}
  #integration-print .nm-company-logo img{max-width:95px;max-height:42px}
 }
+
+.nm-source-matrix{margin:0 0 14px;padding:12px}
+#contenido .nm-source-matrix h2{margin:0 0 8px}
+#contenido .nm-source-matrix table{width:100%;min-width:1100px;border-collapse:collapse}
+#contenido .nm-source-matrix :is(th,td){padding:7px 10px;text-align:left;vertical-align:top;border-bottom:1px solid #e1e8ef}
+#contenido .nm-source-matrix th{font-size:.78rem;background:#eef3f8;color:#26455e}
+#contenido .nm-source-matrix :is(td,th):is(:nth-child(3),:nth-child(8),:nth-child(9),:nth-child(10)){text-align:right;font-variant-numeric:tabular-nums}
