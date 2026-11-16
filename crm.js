@@ -88,7 +88,65 @@ function downloadAccountCsv(value){
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 let observer;function videos(){observer?.disconnect();const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;document.querySelectorAll('video:not([data-manual-play])').forEach(v=>{if(reduced){v.autoplay=false;v.pause()}else{observer=new IntersectionObserver(entries=>entries.forEach(e=>e.isIntersecting?e.target.play().catch(()=>{}):e.target.pause()),{threshold:.15});observer.observe(v)}})}document.addEventListener('visibilitychange',()=>{document.querySelectorAll('video:not([data-manual-play])').forEach(v=>document.hidden?v.pause():!matchMedia('(prefers-reduced-motion: reduce)').matches&&v.play().catch(()=>{}))});
-function register(){modal('Registro de propietario y taller',field('Nombre del taller','name')+field('Responsable','owner')+field('Correo electrónico','email','','email')+field('Ubicación','location')+uploadField('Logo del taller (opcional)','',400)+field('WhatsApp del propietario (código de país)','phone','','tel',false)+optinField('whatsappOptIn',false,'Autoriza recordatorios de citas al propietario del taller')+field('Contraseña (mínimo 10 caracteres)','password','','password')+'<p class="full">El acceso se habilita únicamente después de la aprobación del administrador.</p>',async b=>{await api('register',{...b,image:$('#form [name=image]')?.value||'',whatsappOptIn:b.whatsappOptIn==='on'});toast('Solicitud registrada. Revise su correo para confirmar la cuenta. El administrador debe aprobar el ingreso del taller.')},'Solicitar registro')}
+// Ecuador: cabeceras cantonales del Clasificador Geográfico Estadístico 2026 (INEC).
+const registrationCities={
+  "Azuay": ["Camilo Ponce Enríquez","Chordeleg","Cuenca","El Pan","Girón","Guachapala","Gualaceo","Nabón","Paute","Pucará","San Felipe de Oña","San Fernando","Santa Isabel","Sevilla de Oro","Sígsig"],
+  "Bolívar": ["Caluma","Chillanes","Echeandía","Guaranda","Las Naves","San José de Chimbo","San Miguel"],
+  "Cañar": ["Azogues","Biblián","Cañar","Déleg","El Tambo","La Troncal","Suscal"],
+  "Carchi": ["Bolívar","El Ángel","Huaca","Mira","San Gabriel","Tulcán"],
+  "Chimborazo": ["Alausí","Chambo","Chunchi","Cumandá","Guamote","Guano","Pallatanga","Penipe","Riobamba","Villa La Unión (Cajabamba)"],
+  "Cotopaxi": ["El Corazón","La Maná","Latacunga","Pujilí","San Miguel de Salcedo","Saquisilí","Sigchos"],
+  "El Oro": ["Arenillas","Atahualpa (Paccha)","Balsas","Chilla","El Guabo","Huaquillas","La Victoria","Machala","Marcabelí","Pasaje","Piñas","Portovelo","Santa Rosa","Zaruma"],
+  "Esmeraldas": ["Atacames","Esmeraldas","Muisne","Rioverde","Rosa Zárate (Quinindé)","San Lorenzo","Valdez (Limones)"],
+  "Galápagos": ["Puerto Ayora","Puerto Baquerizo Moreno","Puerto Villamil"],
+  "Guayas": ["Alfredo Baquerizo Moreno (Jujan)","Balao","Balzar","Colimes","Coronel Marcelino Maridueña","Daule","El Empalme (Velasco Ibarra)","El Triunfo","Eloy Alfaro (Durán)","General Antonio Elizalde (Bucay)","General Villamil (Playas)","Guayaquil","Isidro Ayora","Lomas de Sargentillo","Milagro","Naranjal","Naranjito","Nobol (Narcisa de Jesús)","Palestina","Pedro Carbo","Salitre","Samborondón","San Jacinto de Yaguachi","Santa Lucía","Simón Bolívar"],
+  "Imbabura": ["Atuntaqui","Cotacachi","Ibarra","Otavalo","Pimampiro","Urcuquí"],
+  "Loja": ["Alamor","Amaluza","Cariamanga","Catacocha","Catamayo","Celica","Chaguarpamba","Gonzanamá","Loja","Macará","Olmedo","Pindal","Quilanga","Saraguro","Sozoranga","Zapotillo"],
+  "Los Ríos": ["Baba","Babahoyo","Buena Fe","Catarama","Mocache","Montalvo","Palenque","Puebloviejo","Quevedo","Quinsaloma","Valencia","Ventanas","Vinces"],
+  "Manabí": ["Bahía de Caráquez","Calceta","Chone","El Carmen","Flavio Alfaro","Jama","Jaramijó","Jipijapa","Junín","Manta","Montecristi","Olmedo","Paján","Pedernales","Pichincha","Portoviejo","Puerto López","Rocafuerte","San Vicente","Santa Ana","Sucre (24 de Mayo)","Tosagua"],
+  "Morona Santiago": ["General Leonidas Plaza Gutiérrez (Limón Indanza)","Gualaquiza","Huamboya","Logroño","Macas","Pablo Sexto","Palora","San Juan Bosco","Santiago (Tiwintza)","Santiago de Méndez","Sevilla Don Bosco","Sucúa","Taisha"],
+  "Napo": ["Archidona","Baeza","Carlos Julio Arosemena Tola","El Chaco","Tena"],
+  "Orellana": ["La Joya de los Sachas","Loreto","Nuevo Rocafuerte","Puerto Francisco de Orellana (El Coca)"],
+  "Pastaza": ["Arajuno","Mera","Puyo","Santa Clara"],
+  "Pichincha": ["Cayambe","Machachi","Pedro Vicente Maldonado","Puerto Quito","Quito","San Miguel de los Bancos","Sangolquí","Tabacundo"],
+  "Santa Elena": ["La Libertad","Salinas","Santa Elena"],
+  "Santo Domingo de los Tsáchilas": ["La Concordia","Santo Domingo"],
+  "Sucumbíos": ["El Dorado de Cascales","La Bonita","Lumbaquí","Nueva Loja","Puerto El Carmen de Putumayo","Shushufindi","Tarapoa"],
+  "Tungurahua": ["Ambato","Baños de Agua Santa","Cevallos","Mocha","Patate","Pelileo","Píllaro","Quero","Tisaleo"],
+  "Zamora Chinchipe": ["El Pangui","Guayzimi","Palanda","Paquisha","28 de Mayo (Yacuambi)","Yantzaza","Zamora","Zumba","Zumbi"]
+};
+
+function register(){
+ const provinces=Object.keys(registrationCities).map(name=>({id:name,name}));
+ const cityPlaceholder='<option value="">Seleccione una ciudad</option>';
+ const fields=field('Nombre del taller','name')+field('Responsable','owner')
+  +'<div class="full">'+field('Correo electrónico','email','','email')+'</div>'
+  +select('Provincia','province',provinces)
+  +'<label>Ciudad<select class="form-select" name="city" required disabled>'+cityPlaceholder+'</select></label>'
+  +'<label class="full">Dirección<input class="form-control" name="address" autocomplete="street-address" required></label>'
+  +uploadField('Logo del taller (opcional)','',400)
+  +field('WhatsApp del propietario (código de país)','phone','','tel',false)
+  +optinField('whatsappOptIn',false,'Autoriza recordatorios de citas al propietario del taller')
+  +field('Contraseña (mínimo 10 caracteres)','password','','password')
+  +'<p class="full">El acceso se habilita únicamente después de la aprobación del administrador.</p>';
+
+ modal('Registro de propietario y taller',fields,async ({province,city,address,image,whatsappOptIn,...account})=>{
+  if(!Object.hasOwn(registrationCities,province)||!registrationCities[province].includes(city))
+   throw Error('Seleccione una provincia y una ciudad válidas.');
+  const street=address?.trim();
+  if(!street)throw Error('Ingrese la dirección del taller.');
+  const location=[city,province,street].join(' · ');
+  await api('register',{...account,location,image:image||'',whatsappOptIn:whatsappOptIn==='on'});
+  toast('Solicitud registrada. Revise su correo para confirmar la cuenta. El administrador debe aprobar el ingreso del taller.');
+ },'Solicitar registro');
+
+ const {province,city}=$('#form').elements;
+ province.addEventListener('change',()=>{
+  const cities=registrationCities[province.value]||[];
+  city.innerHTML=cityPlaceholder+cities.map(name=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('');
+  city.disabled=!cities.length;
+ });
+}
 $('#account').onclick=()=>session?go('security'):register();$('#menu').onclick=()=>setNavigation(!document.body.classList.contains('menu-open'));
 function go(v){view=v;filter='';recordFilter='all';setNavigation(false);render()}
 document.addEventListener('input',e=>{if(e.target.id==='search'){filter=e.target.value.toLowerCase();const pos=e.target.selectionStart;render();$('#search').focus();$('#search').setSelectionRange(pos,pos)}});
