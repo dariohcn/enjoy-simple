@@ -111,12 +111,51 @@ function proformaBrandHeader(){
  const brand=filters.brand;
  const shopLabel=/^Administración de enjoy$/i.test(name)?'':name;
  const workshop=/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/=]+$/.test(workshopLogo)&&workshopLogo.length<=75000
-  ?'<img src="'+safe(workshopLogo)+'" alt="Logo de '+safe(name)+'">'
+  ?'<img data-nm-workshop-logo src="'+safe(workshopLogo)+'" alt="Logo de '+safe(name)+'">'
   :'';
  const logo=vehicleBrandLogo?'<img src="'+safe(vehicleBrandLogo)+'" alt="Logo de '+safe(brand)+'">':'';
  return '<div class="nm-proforma-brand"><div class="nm-company-logo">'+workshop+(shopLabel?'<span>'+safe(shopLabel)+'</span>':'')+'</div><strong class="nm-enjoy-mark">enjoy</strong><div class="nm-company-logo">'+logo+'<span>'+safe(brand)+'</span></div></div>';
 }
 
+async function removeWorkshopLogoBackground(container){
+ const img=container.querySelector('[data-nm-workshop-logo]');
+ if(!img)return;
+ try{
+  await img.decode();
+  const canvas=document.createElement('canvas');
+  const width=canvas.width=img.naturalWidth;
+  const height=canvas.height=img.naturalHeight;
+  if(!width||!height||width*height>160000)return;
+  const context=canvas.getContext('2d');
+  context.drawImage(img,0,0);
+  const pixels=context.getImageData(0,0,width,height);
+  const rgba=pixels.data;
+  const queue=new Uint32Array(width*height);
+  let end=0;
+  function visit(index){
+   const offset=index*4;
+   const red=rgba[offset],green=rgba[offset+1],blue=rgba[offset+2];
+   if(!rgba[offset+3]||Math.min(red,green,blue)<242||Math.max(red,green,blue)-Math.min(red,green,blue)>9)return;
+   rgba[offset+3]=0;
+   queue[end++]=index;
+  }
+  for(let x=0;x<width;x++){visit(x);visit((height-1)*width+x);}
+  for(let y=0;y<height;y++){visit(y*width);visit(y*width+width-1);}
+  for(let start=0;start<end;start++){
+   const index=queue[start],x=index%width;
+   if(x>0)visit(index-1);
+   if(x<width-1)visit(index+1);
+   if(index>=width)visit(index-width);
+   if(index<width*(height-1))visit(index+width);
+  }
+  if(!end)return;
+  context.putImageData(pixels,0,0);
+  img.src=canvas.toDataURL('image/png');
+  await img.decode();
+ }catch{
+  // El logo registrado queda disponible si el navegador no puede procesarlo.
+ }
+}
 function vehicleDescription(){
  const year=selectedYear();
  const version=filters.code==='Sin versión indicada'?'':filters.code;
@@ -276,10 +315,12 @@ function mountProforma(){
   <p class="nm-print-prepared"><strong>ELABORADO POR</strong><br>${safe(fields.prepared||'________________________')}</p>`;
   document.getElementById(page.id)?.remove();
   document.body.append(page);
+  await removeWorkshopLogoBackground(page);
   await Promise.all([...page.querySelectorAll('img')].map(img=>img.decode().catch(()=>{})));
   if(page.isConnected)window.print();
  };
  host.append(dialog);
+ void removeWorkshopLogoBackground(dialog);
  connectVehicleLookup(dialog.querySelector('form'));
 }
 
