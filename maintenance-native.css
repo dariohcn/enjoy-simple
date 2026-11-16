@@ -124,16 +124,16 @@
 .nm-inline-proforma[data-editing="false"] .nm-form-items tr>:last-child{display:none}
 .nm-inline-proforma .nm-form-items input[readonly]{border-color:transparent;background:transparent;box-shadow:none}
 
-.nm-proforma-brand{display:grid;grid-template-columns:minmax(50px,1fr) minmax(0,3fr) minmax(50px,1fr);gap:8px;align-items:center;min-height:54px;text-align:center}
-.nm-enjoy-mark{justify-self:start;color:#173d55;font-size:clamp(18px,3vw,26px);letter-spacing:-.04em;text-transform:none}
+.nm-proforma-brand{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(6px,2vw,20px);align-items:center;min-height:54px;text-align:center}
+.nm-enjoy-mark{justify-self:center;color:#173d55;font-size:clamp(18px,3vw,26px);letter-spacing:-.04em;text-transform:none}
 .nm-company-logo{justify-self:end;max-width:100%}
-.nm-company-logo img{display:block;width:auto;max-width:min(110px,100%);height:auto;max-height:52px;object-fit:contain}
+.nm-company-logo img{display:block;width:min(110px,100%);height:52px;object-fit:contain}
 @media print{
  #integration-print .nm-proforma-brand{min-height:45px}
  #integration-print .nm-enjoy-mark{font-size:20pt}
- #integration-print .nm-company-logo img{max-width:95px;max-height:42px}
+ #integration-print .nm-company-logo img{width:min(95px,100%);height:42px}
 }
 
 
-.nm-proforma-brand .nm-company-logo{justify-self:center;min-width:0;display:grid;justify-items:center;gap:3px;color:#203c51}
+.nm-proforma-brand .nm-company-logo{justify-self:center;min-width:0;width:100%;display:grid;justify-items:center;gap:3px;color:#203c51}
 .nm-proforma-brand .nm-company-logo span{overflow-wrap:anywhere;font-size:11px;text-align:center}
