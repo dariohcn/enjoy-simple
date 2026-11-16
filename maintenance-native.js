@@ -34,12 +34,16 @@ function selection(){let rows=source?.rows||[],choices={};
  const byLabel=new Map([...new Set(rows.map(yearLabel))].map(label=>[label,yearsForLabel(label)]));
  const availableYears=[...new Set([...byLabel.values()].flat())].filter(year=>year&&year!=='Sin año indicado');
  const numericYears=availableYears.filter(year=>/^\d{4}$/.test(year)).sort((a,b)=>Number(b)-Number(a));
- const otherLabels=availableYears.filter(year=>!/^\d{4}$/.test(year)).sort((a,b)=>a.localeCompare(b,'es-EC',{numeric:true}));
- choices.year=[...numericYears,...otherLabels];
+ const originalLabels=[...byLabel.keys()].filter(label=>label&&label!=='Sin año indicado'&&!/^\d{4}$/.test(label));
+ originalLabels.sort((a,b)=>b.localeCompare(a,'es-EC',{numeric:true}));
+ choices.year=[...originalLabels,...numericYears];
  if(rows.length)choices.year.push(otherYear);
  if(!choices.year.includes(filters.year))filters.year='';
  const year=selectedYear();
- rows=year?rows.filter(row=>yearLabel(row)==='Sin año indicado'||byLabel.get(yearLabel(row)).includes(year)):[];
+ rows=year?rows.filter(row=>{
+  const label=yearLabel(row);
+  return /^\d{4}$/.test(year)?label==='Sin año indicado'||byLabel.get(label).includes(year):label===year;
+ }):[];
  for(const [key,i] of [['brand',0],['model',1],['code',2],['km',4],['plan',13]]){choices[key]=unique(rows,i);rows=pick(rows,key,i);}if(source?.plans)rows=rows.flatMap(h=>source.plans[h[14]][6].map(index=>{const l=source.items[index];return [h[0],h[1],h[2],h[3],h[4],l[0],l[1],l[2],l[3],l[4],l[5],l[6],l[7],h[13],null,l[8]];}));return {rows,choices};}
 function visibleRows(rows){const q=filters.search.toLocaleLowerCase('es');return rows.filter(r=>(!filters.type||(filters.type==='labor'?num(r[8])===1:num(r[8])!==1))&&(!q||[r[5],r[6]].join(' ').toLocaleLowerCase('es').includes(q)));}
 function totals(rows,iva=15){const labor=currencySum(rows.filter(r=>num(r[8])===1)),subtotal=currencySum(rows),parts=round(subtotal-labor);const extra=round(subtotal*iva/100);return {labor,parts,subtotal,total:round(subtotal+extra),extra,rate:Math.max(0,...rows.filter(r=>num(r[8])===1).map(r=>num(r[10])))};}
