@@ -5,7 +5,20 @@ let session=null,data=null,view='overview',month=businessDate(),filter='',select
 function isoToday(){const p=Object.fromEntries(new Intl.DateTimeFormat('en',{timeZone:'America/Guayaquil',year:'numeric',month:'2-digit',day:'2-digit',numberingSystem:'latn'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`}
 function businessDate(){return new Date(isoToday()+'T12:00:00')}
 const names={products:['◇','Productos'],monitor:['◫','Panel de la red'],overview:['◫','Resumen'],calendar:['▦','Calendario'],clients:['♙','Clientes'],vehicles:['◇','Vehículos'],maintenance:['◷','Mantenimiento'],services:['⚙','Servicios'],requests:['≡','Solicitudes'],alerts:['♧','Alertas'],reminders:['◷','Recordatorios'],admin:['▤','Talleres'],users:['♙','Usuarios'],indicators:['◫','Indicadores'],directory:['◇','Red de talleres'],security:['⊙','Cuenta y respaldo']};
-async function api(path,body){return EnjoyConnection.api(path,body);}
+let connectionLoading;
+async function api(path,body){
+ if(!window.EnjoyConnection){
+  connectionLoading??=new Promise(resolve=>{
+   const script=document.createElement('script');
+   script.src='connection.js?v=conexion2&reintento=1';
+   script.onload=script.onerror=()=>{script.remove();resolve();};
+   document.head.append(script);
+  }).finally(()=>{connectionLoading=null;});
+  await connectionLoading;
+ }
+ if(!window.EnjoyConnection)throw Error('No se pudo cargar el acceso. Recargue la página e intente nuevamente.');
+ return window.EnjoyConnection.api(path,body);
+}
 
 function toast(t){$('#toast').textContent=t;$('#toast').style.display='block';setTimeout(()=>$('#toast').style.display='none',4500)}
 const date=d=>new Date(d+'T12:00:00').toLocaleDateString('es-EC',{day:'numeric',month:'short'}),iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,client=id=>data.clients.find(x=>x.id===id),vehicle=id=>data.vehicles.find(x=>x.id===id),money=n=>new Intl.NumberFormat('es-EC',{style:'currency',currency:'USD'}).format(n),total=s=>(Number(s.labor)+Number(s.supplies))*(1-Number(s.discount)/100);

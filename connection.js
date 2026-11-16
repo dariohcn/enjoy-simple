@@ -1,9 +1,9 @@
 'use strict';
 /* Public browser configuration contains no privileged credential. */
-const EnjoyConnection = (() => {
+window.EnjoyConnection = (() => {
   const storageKey='enjoy.access.v1';
   let tokens=null,refreshing=null;
-  try{tokens=JSON.parse(sessionStorage.getItem(storageKey)||'null')}catch{sessionStorage.removeItem(storageKey)}
+  try{tokens=JSON.parse(sessionStorage.getItem(storageKey)||'null')}catch{tokens=null}
   function settings(){
     const c=window.ENJOY_CONFIG||{};
     if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(c.endpoint||'')||!c.publicKey)throw Error('El acceso aún no está habilitado. Consulte al administrador.');
@@ -11,7 +11,7 @@ const EnjoyConnection = (() => {
     try{if(JSON.parse(atob(c.publicKey.split('.')[1]||'')).role==='service_role')throw Error('Configuración de acceso inválida.')}catch(e){if(e.message==='Configuración de acceso inválida.')throw e}
     return c;
   }
-  function remember(value){tokens=value?{access_token:value.access_token,refresh_token:value.refresh_token,expires_at:value.expires_at||Math.floor(Date.now()/1000)+(value.expires_in||3600)}:null;if(tokens)sessionStorage.setItem(storageKey,JSON.stringify(tokens));else sessionStorage.removeItem(storageKey)}
+  function remember(value){tokens=value?{access_token:value.access_token,refresh_token:value.refresh_token,expires_at:value.expires_at||Math.floor(Date.now()/1000)+(value.expires_in||3600)}:null;try{if(tokens)sessionStorage.setItem(storageKey,JSON.stringify(tokens));else sessionStorage.removeItem(storageKey)}catch{/* La sesión permanece disponible en esta pestaña. */}}
   async function request(path,body,token,method='POST'){
     const c=settings(),response=await fetch(c.endpoint+path,{method,headers:{apikey:c.publicKey,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
     const result=await response.json().catch(()=>({}));
