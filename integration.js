@@ -225,6 +225,7 @@ function menuPhoto(view){
  return '<img class="integration-card-photo" src="assets/integration-'+filename+'.jpg" alt="" loading="lazy">';
 }
 const ownerCards=[
+ ['Registro','registration','clients','Registra clientes y vehículos'],
  ['Plan de mantenimiento','maintenanceReport','maintenance','Consulte por año, marca, modelo, versión y kilometraje'],
  ['Agendamiento','calendar','calendar','Organice las próximas citas del taller'],
  ['Abrir Orden','orders','services','Recepción y seguimiento de órdenes'],
@@ -287,7 +288,7 @@ render=function(){
  $('#crumb').textContent=requested==='security'&&session.role==='owner'?'Configuración de usuario':names[requested]?.[1]||names.security[1];
  const entries=session.role==='admin'?[['Administración','adminHome'],...adminCards.map(c=>[c[0],c[1]])]:[...ownerCards.map(c=>[c[0],c[1]]),['Configuración de usuario','security']];
  $('#nav').innerHTML=entries.map(([label,v])=>'<button data-integrated-view="'+v+'" class="'+(v===requested?'active':'')+'" '+(v===requested?'aria-current="page"':'')+'>'+label+'</button>').join('')+'<button data-action="logout">Cerrar sesión</button>';
- $('#mobile-nav').innerHTML=(session.role==='admin'?[['Inicio','adminHome'],['Plan de mantenimiento','maintenanceReport'],['Panel','monitor'],['Talleres','admin']]:ownerCards.filter(c=>c[1]!=='blog').map(c=>[c[0],c[1]])).map(([label,v])=>'<button data-integrated-view="'+v+'" '+(v===requested?'class="active" aria-current="page"':'')+'>'+label+'</button>').join('');
+ $('#mobile-nav').innerHTML=(session.role==='admin'?[['Inicio','adminHome'],['Plan de mantenimiento','maintenanceReport'],['Panel','monitor'],['Talleres','admin']]:ownerCards.filter(c=>!['registration','blog'].includes(c[1])).map(c=>[c[0],c[1]])).map(([label,v])=>'<button data-integrated-view="'+v+'" '+(v===requested?'class="active" aria-current="page"':'')+'>'+label+'</button>').join('');
  if(!['overview','adminHome'].includes(requested)){
   const startView=session.role==='admin'?'adminHome':'overview';
   $('#contenido').insertAdjacentHTML('afterbegin','<button type="button" class="btn secondary integration-back" data-integrated-view="'+startView+'">← Volver al inicio</button>');
