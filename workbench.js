@@ -54,6 +54,7 @@ render=function(){
  if(section){section.classList.add('workbench-table');section.innerHTML=content;}else main.insertAdjacentHTML('beforeend',`<section class="live-card workbench-table">${content}</section>`);
  wireWorkbench();labelTables();
  const video=document.querySelector('#workbench-video'),play=document.querySelector('#workbench-play');
+ if(!video||!play)return;
  const startVideo=()=>{video.muted=true;video.loop=true;video.play().then(()=>{play.hidden=true;}).catch(()=>{play.hidden=false;});};
  play.addEventListener('click',startVideo);
  startVideo();
