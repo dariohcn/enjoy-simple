@@ -60,11 +60,18 @@ const baseAppointmentCard=appointmentCard;
 appointmentCard=function(a){const html=baseAppointmentCard(a);let products=a.associatedProducts||[];try{if(typeof products==='string')products=JSON.parse(products);}catch{products=[];}const extra=(a.catalogueServiceName?'<p>Servicio: '+esc(a.catalogueServiceName)+'</p>':'')+(Array.isArray(products)&&products.length?'<p>Productos: '+products.map(p=>esc(p.name)+' × '+Number(p.qty)).join(' · ')+'</p>':'');return html.replace('</article>',()=>'<div class="integration-appointment-detail">'+extra+'</div></article>');};
 go=function(next){if(!permitted(next))return toast('Esta sección no está disponible para su perfil.');return baseGo(next);};
 Object.assign(names,{monitor:['','Panel de control'],adminHome:['','Administración'],overview:['','Inicio'],dashboard:['','Panel de control'],proforma:['','Proforma'],registration:['','Registro'],catalogImport:['','Importar catálogo'],maintenanceReport:['','Plan de mantenimiento']});
+function updatePanelHomeButton(panel,role){
+ const button=$('#panel-home');
+ button.hidden=!panel;
+ button.dataset.integratedView=role==='admin'?'adminHome':'overview';
+}
 render=function(){
- if(!session)return baseRender();
+ if(!session){updatePanelHomeButton(false);return baseRender();}
  if(identity!==session.email){identity=session.email;quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];quoteLines=[];vehicleId='';quoteId='';saved=false;quoteNo='';conditions='';if(session.role==='admin')view='adminHome';}
  if(!permitted(view))view=session.role==='admin'?'adminHome':'overview';
  const requested=view,custom=['adminHome','dashboard','maintenanceReport','proforma','registration','catalogImport'].includes(requested);
+ const isControlPanel=requested==='dashboard'||requested==='monitor';
+ updatePanelHomeButton(isControlPanel,session.role);
  if(custom)view=requested==='dashboard'?'overview':'security';
  baseRender();view=requested;if(!data)return;
  if(requested==='adminHome'||(requested==='overview'&&session.role==='owner'))$('#contenido').innerHTML=home();
@@ -81,14 +88,9 @@ render=function(){
  const entries=session.role==='admin'?[['Administración','adminHome'],...adminCards.map(c=>[c[0],c[1]])]:[...ownerCards.map(c=>[c[0],c[1]]),['Configuración de usuario','security']];
  $('#nav').innerHTML=entries.map(([label,v])=>'<button data-integrated-view="'+v+'" class="'+(v===requested?'active':'')+'" '+(v===requested?'aria-current="page"':'')+'>'+label+'</button>').join('')+'<button data-action="logout">Cerrar sesión</button>';
  $('#mobile-nav').innerHTML=(session.role==='admin'?[['Inicio','adminHome'],['Plan de mantenimiento','maintenanceReport'],['Panel','monitor'],['Talleres','admin']]:ownerCards.map(c=>[c[0],c[1]])).map(([label,v])=>'<button data-integrated-view="'+v+'" '+(v===requested?'class="active" aria-current="page"':'')+'>'+label+'</button>').join('');
- if(!['overview','adminHome'].includes(requested)){
-  const content=$('#contenido');
-  const isControlPanel=requested==='dashboard'||requested==='monitor';
-  const header=isControlPanel&&content.querySelector('.page-head,.live-title,.network-heading');
-  const actions=header&&(header.querySelector('.dashboard-hero-actions,.actions')||header);
+ if(!isControlPanel&&!['overview','adminHome'].includes(requested)){
   const startView=session.role==='admin'?'adminHome':'overview';
-  const backButton='<button type="button" class="btn secondary'+(header?'':' integration-back')+'" data-integrated-view="'+startView+'">← Volver al inicio</button>';
-  (actions||content).insertAdjacentHTML(actions?'beforeend':'afterbegin',backButton);
+  $('#contenido').insertAdjacentHTML('afterbegin','<button type="button" class="btn secondary integration-back" data-integrated-view="'+startView+'">← Volver al inicio</button>');
  }
 
  labelTables();
