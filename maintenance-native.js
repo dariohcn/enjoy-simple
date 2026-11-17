@@ -73,43 +73,85 @@ function body(){
 
 
 function connectVehicleLookup(form){
- const fields=Object.fromEntries(['customer','plate','chassis'].map(name=>[name,form.elements.namedItem(name)]));
- const matches=form.querySelector('[data-vehicle-matches]');
- const chooser=form.querySelector('[data-vehicle-choice]');
+ const customer=form.elements.namedItem('customer');
+ const plate=form.elements.namedItem('plate');
+ const clientMatches=form.querySelector('[data-client-matches]');
+ const clientChooser=form.querySelector('[data-client-choice]');
+ const vehicleMatches=form.querySelector('[data-vehicle-matches]');
+ const vehicleChooser=form.querySelector('[data-vehicle-choice]');
  const status=form.querySelector('[data-vehicle-status]');
+ const normalize=value=>text(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase().trim().replace(/\s+/g,' ');
+ const normalizePlate=value=>normalize(value).replace(/[^a-z0-9]/g,'');
  const customers=new Map(registeredClients.map(client=>[client.id,client.name||'']));
- const records=registeredVehicles.map(vehicle=>({
-  customer:customers.get(vehicle.clientId)||'', plate:vehicle.plate||'',
-  chassis:vehicle.chassis||vehicle.vin||'', model:[vehicle.brand,vehicle.model,vehicle.year].filter(Boolean).join(' ')
+ const clients=[...customers].filter(([,name])=>name).map(([id,name])=>{
+  const normalized=normalize(name);
+  const words=normalized.split(' ');
+  return {id,name,normalized,words,initials:words.map(word=>word[0]).join('')};
+ });
+ const vehicles=registeredVehicles.filter(vehicle=>vehicle.plate).map(vehicle=>({
+  clientId:vehicle.clientId,customer:customers.get(vehicle.clientId)||'',plate:vehicle.plate,
+  model:[vehicle.brand,vehicle.model,vehicle.year].filter(Boolean).join(' ')
  }));
- const normalize=(value,name)=>{
-  const normalized=text(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
-  return name==='customer'?normalized.replace(/\s+/g,' '):normalized.replace(/[^a-z0-9]/g,'');
- };
- let options=[];
- function apply(record){
-  for(const name of Object.keys(fields))fields[name].value=record[name];
-  matches.hidden=true;
-  status.textContent='Vehículo seleccionado: '+[record.model,record.plate||record.chassis].filter(Boolean).join(' · ')+'. Puede editar los campos.';
+ let selectedClient='',clientOptions=[],vehicleOptions=[];
+
+ function showVehicles(options){
+  vehicleOptions=options;
+  vehicleMatches.hidden=!options.length;
+  vehicleChooser.replaceChildren(new Option('Seleccione el vehículo',''),...options.map((record,index)=>
+   new Option([record.plate,record.model,record.customer].filter(Boolean).join(' · '),String(index))));
+ }
+
+ function applyVehicle(record){
+  plate.value=record.plate;
+  if(record.customer)customer.value=record.customer;
+  selectedClient=record.clientId||'';
+  clientMatches.hidden=true;
+  vehicleMatches.hidden=true;
+  status.textContent='Vehículo seleccionado: '+[record.model,record.plate].filter(Boolean).join(' · ')+'.';
   status.hidden=false;
  }
- function lookup(name,exactOnly){
-  const query=normalize(fields[name].value,name);
-  options=query.length>=2?records.filter(record=>normalize(record[name],name).includes(query)):[];
-  const exact=options.filter(record=>normalize(record[name],name)===query);
-  if(exactOnly&&exact.length===1){apply(exact[0]);return;}
+
+ customer.addEventListener('input',()=>{
+  const term=normalize(customer.value);
+  const initials=term.replace(/[^a-z]/g,'');
+  const terms=term.split(' ');
+  selectedClient='';
   status.hidden=true;
-  matches.hidden=!options.length;
-  chooser.replaceChildren(new Option('Seleccione el vehículo', ''));
-  options.forEach((record,index)=>{
-   chooser.add(new Option([record.customer,record.plate||record.chassis||'Sin placa',record.model].filter(Boolean).join(' · '),String(index)));
-  });
+  showVehicles([]);
+  clientOptions=term?clients.filter(client=>client.normalized.includes(term)||
+   terms.every(part=>client.words.some(word=>word.startsWith(part)))||
+   (initials&&client.initials.startsWith(initials))).slice(0,30):[];
+  clientMatches.hidden=!clientOptions.length;
+  clientChooser.replaceChildren(new Option('Seleccione el cliente',''),...clientOptions.map((client,index)=>
+   new Option(client.name,String(index))));
+ });
+
+ clientChooser.addEventListener('change',()=>{
+  if(clientChooser.value==='')return;
+  const client=clientOptions[Number(clientChooser.value)];
+  selectedClient=client.id;
+  customer.value=client.name;
+  clientMatches.hidden=true;
+  status.hidden=true;
+  const options=vehicles.filter(record=>record.clientId===selectedClient);
+  if(options.length===1){applyVehicle(options[0]);return;}
+  if(!options.some(record=>normalizePlate(record.plate)===normalizePlate(plate.value)))plate.value='';
+  showVehicles(options);
+ });
+
+ function lookupPlate(exactOnly){
+  const query=normalizePlate(plate.value);
+  const options=vehicles.filter(record=>(!selectedClient||record.clientId===selectedClient)&&
+   normalizePlate(record.plate).includes(query));
+  const exact=options.filter(record=>normalizePlate(record.plate)===query);
+  if(exactOnly&&query&&exact.length===1){applyVehicle(exact[0]);return;}
+  status.hidden=true;
+  showVehicles(query.length>=2||selectedClient?options:[]);
  }
- for(const [name,input] of Object.entries(fields)){
-  input.addEventListener('input',()=>lookup(name,false));
-  input.addEventListener('change',()=>lookup(name,true));
- }
- chooser.addEventListener('change',()=>{if(chooser.value!=='')apply(options[Number(chooser.value)]);});
+ plate.addEventListener('input',()=>lookupPlate(false));
+ plate.addEventListener('change',()=>lookupPlate(true));
+ vehicleChooser.addEventListener('change',()=>{if(vehicleChooser.value!=='')applyVehicle(vehicleOptions[Number(vehicleChooser.value)]);});
 }
 
 let vehicleBrandLogo='';
@@ -190,8 +232,9 @@ function mountProforma(){
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
    <tr><th scope="row">Vehículo</th><td colspan="3" data-nm-vehicle-label>${safe(vehicleLabel)}</td></tr>
    <tr><th scope="row"><label for="nm-customer">Cliente</label></th><td colspan="3"><input id="nm-customer" class="form-control" name="customer" required maxlength="120"></td></tr>
-   <tr><th scope="row"><label for="nm-chassis">Chasis</label></th><td><input id="nm-chassis" class="form-control" name="chassis" maxlength="40"></td><th scope="row"><label for="nm-plate">Placa</label></th><td><input id="nm-plate" class="form-control" name="plate" maxlength="20"></td></tr>
+   <tr><th scope="row"><label for="nm-plate">Placa</label></th><td colspan="3"><input id="nm-plate" class="form-control" name="plate" maxlength="20"></td></tr>
   </tbody></table>
+  <div data-client-matches hidden><label>Elegir cliente registrado <select class="form-select" data-client-choice></select></label></div>
   <div data-vehicle-matches hidden><label>Elegir vehículo registrado <select class="form-select" data-vehicle-choice></select></label></div>
   <p data-vehicle-status role="status" hidden></p>
   <div class="nm-quote-lines"></div>
@@ -307,7 +350,7 @@ function mountProforma(){
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
    <tr><th>Vehículo</th><td colspan="3">${safe(vehicle)}</td></tr>
    <tr><th>Cliente</th><td colspan="3">${safe(fields.customer)}</td></tr>
-   <tr><th>Chasis</th><td>${safe(fields.chassis||'—')}</td><th>Placa</th><td>${safe(fields.plate||'—')}</td></tr>
+   <tr><th>Placa</th><td colspan="3">${safe(fields.plate||'—')}</td></tr>
   </tbody></table>
   ${section('REPUESTOS',rows.filter(r=>num(r[8])!==1),true)}
   ${section('MANO DE OBRA',rows.filter(r=>num(r[8])===1))}
