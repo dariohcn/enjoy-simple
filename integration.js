@@ -9,100 +9,117 @@ const cents=n=>Math.round(Number(n)*100),sum=rows=>rows.reduce((n,r)=>n+cents(r.
 const catalog=()=>[...(data?.services||[]).filter(x=>x.active!==false).map(x=>({key:'s:'+x.id,id:x.id,kind:'service',name:x.name,serviceType:x.serviceType||'Diagnóstico',price:Math.round(total(x)*100)/100,unit:'Servicio'})),...(data?.products||[]).filter(x=>x.active).map(x=>({key:'p:'+x.id,id:x.id,kind:'product',name:x.name,price:Number(x.price),unit:x.attributes?.unit||'Unidad'}))];
 const permitted=v=>!!session&&(roleViews[session.role]||[]).includes(v);
 icons.blog='<path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4zm0 13h14M9 8h6m-6 4h6"/>';
-let blogIndex;
-const blogArticles=new Map();
-const blogDate=new Intl.DateTimeFormat('es-EC',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+const blogTime=new Intl.DateTimeFormat('es-EC',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Guayaquil'});
+function blogByline(post){
+ return '<p class="blog-meta">'+esc(post.name)+' · <time datetime="'+esc(post.created)+'">'+esc(blogTime.format(new Date(post.created)))+'</time></p>';
+}
 
-async function readBlogFile(path,format){
- const response=await fetch(path);
- if(!response.ok)throw Error('No se pudo cargar el contenido del blog.');
- return response[format]();
-}
-function blogMetadata(post){
- const date=blogDate.format(new Date(post.date+'T00:00:00Z'));
- return '<p class="blog-meta">'+esc(post.category)+' <span aria-hidden="true">·</span> <time datetime="'+esc(post.date)+'">'+esc(date)+'</time></p>';
-}
 function wireBlog(){
  const root=$('#enjoy-blog');
- const results=root.querySelector('[data-blog-results]');
- const filters=root.querySelector('form');
- const category=filters.elements.category;
- const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
- let posts=[],visible=9,sequence=0;
- function showList(focus=false){
-  sequence++;
-  filters.hidden=!posts.length;
-  const query=normalize(filters.elements.search.value.trim());
-  const matches=posts.filter(post=>(!category.value||post.category===category.value)&&
-   normalize([post.title,post.summary,post.category].join(' ')).includes(query));
-  const showFeatured=!query&&!category.value;
-  results.innerHTML=matches.length?'<div class="blog-grid">'+matches.slice(0,visible).map((post,index)=>
-   '<article class="blog-card'+(showFeatured&&index===0?' blog-featured':'')+'">'+blogMetadata(post)+
-   '<h2><button type="button" class="blog-title" data-blog-open="'+esc(post.slug)+'">'+esc(post.title)+'</button></h2>'+
-   '<p>'+esc(post.summary)+'</p></article>').join('')+'</div>'+
-   (matches.length>visible?'<button type="button" class="btn secondary" data-blog-more>Ver más artículos</button>':''):
-   '<p role="status">'+(posts.length?'No hay artículos para esta selección.':'Aún no hay artículos publicados.')+'</p>';
-  if(focus)filters.elements.search.focus();
- }
- async function openPost(post){
+ const account=session;
+ const feed=root.querySelector('[data-blog-feed]');
+ const topicForm=root.querySelector('[data-blog-new]');
+ const replyForm=root.querySelector('[data-blog-reply]');
+ const status=root.querySelector('[data-blog-status]');
+ const pending=new WeakMap();
+ let topicId='',rows=[],before='',hasMore=false,sequence=0;
+ const active=()=>root.isConnected&&session===account;
+
+ async function loadBlog({more=false,focus=false}={}){
   const request=++sequence;
-  filters.hidden=true;
-  results.innerHTML='<button type="button" class="btn secondary" data-blog-back>← Todos los artículos</button>'+
-   '<article class="blog-article">'+blogMetadata(post)+'<h2 tabindex="-1">'+esc(post.title)+'</h2>'+
-   '<p class="blog-summary">'+esc(post.summary)+'</p><div data-blog-body aria-live="polite"><p>Cargando artículo…</p></div></article>';
-  results.querySelector('h2').focus();
-  const body=results.querySelector('[data-blog-body]');
+  const currentTopic=topicId;
+  status.textContent='Cargando…';
+  const moreButton=feed.querySelector('[data-blog-more]');
+  if(moreButton)moreButton.disabled=true;
   try{
-   if(!blogArticles.has(post.slug)){
-    const pending=readBlogFile('blog/'+post.slug+'.txt','text').catch(error=>{blogArticles.delete(post.slug);throw error;});
-    blogArticles.set(post.slug,pending);
-   }
-   const article=await blogArticles.get(post.slug);
-   if(request!==sequence||!root.isConnected)return;
-   body.innerHTML=article.trim().split(/\r?\n\s*\r?\n/).map(block=>
-    block.startsWith('## ')?'<h3>'+esc(block.slice(3))+'</h3>':'<p>'+esc(block)+'</p>').join('');
-  }catch(error){
-   if(request===sequence&&root.isConnected)body.innerHTML='<p role="alert">'+esc(error.message)+'</p><button type="button" class="btn secondary" data-blog-open="'+esc(post.slug)+'">Reintentar</button>';
+   const result=await api(currentTopic?'blog-topic':'blog-list',{topic:currentTopic,before:more?before:''});
+   if(!active()||request!==sequence)return;
+   const page=result.items.slice(0,15);
+   rows=more?rows.concat(page):page;
+   hasMore=result.items.length>15;
+   before=page.at(-1)?.cursor||'';
+   const topic=result.topic;
+   replyForm.hidden=!topic;
+   const entries=rows.map(post=>'<article class="card blog-entry">'+blogByline(post)+
+    (topic?'':'<h3><button type="button" class="blog-title" data-blog-topic="'+esc(post.id)+'">'+esc(post.title)+'</button></h3>')+
+    '<p class="blog-entry-body">'+esc(post.body)+'</p></article>').join('');
+   feed.innerHTML=(topic?'<button type="button" class="btn secondary" data-blog-back>← Todos los temas</button>'+
+    '<article class="card blog-entry blog-topic"><h2 tabindex="-1">'+esc(topic.title)+'</h2>'+blogByline(topic)+
+    '<p class="blog-entry-body">'+esc(topic.body)+'</p></article><h3>Respuestas</h3>':
+    '<h2 tabindex="-1">Temas de la comunidad</h2>')+
+    (entries||'<p class="blog-empty">'+(topic?'Sé la primera persona en responder.':'Todavía no hay temas. Comparte la primera consulta.')+'</p>')+
+    (hasMore?'<button type="button" class="btn secondary" data-blog-more>Ver más</button>':'');
+   if(focus)feed.querySelector('h2')?.focus();
+   status.textContent='';
+  }catch{
+   if(!active()||request!==sequence)return;
+   status.textContent='No se pudo cargar la conversación.';
+   if(moreButton)moreButton.disabled=false;
+   feed.querySelector('[data-blog-retry]')?.remove();
+   feed.insertAdjacentHTML('afterbegin','<button type="button" class="btn secondary" data-blog-retry>Reintentar</button>');
   }
  }
- filters.addEventListener('submit',event=>event.preventDefault());
- filters.addEventListener('input',()=>{visible=9;showList();});
- results.addEventListener('click',event=>{
+
+ function openTopic(id){
+  topicId=id;
+  rows=[];
+  before='';
+  topicForm.hidden=!!id;
+  replyForm.hidden=true;
+  feed.innerHTML=id?'<button type="button" class="btn secondary" data-blog-back>← Todos los temas</button>':'';
+  if(replyForm.dataset.topic!==id)replyForm.reset();
+  replyForm.dataset.topic=id;
+  loadBlog({focus:true});
+ }
+
+ feed.addEventListener('click',event=>{
   const button=event.target.closest('button');
   if(!button)return;
-  if(button.hasAttribute('data-blog-back'))showList(true);
-  if(button.hasAttribute('data-blog-more')){
-   const previous=visible;
-   visible+=9;
-   showList();
-   results.querySelectorAll('[data-blog-open]')[previous]?.focus();
-  }
-  const post=posts.find(item=>item.slug===button.dataset.blogOpen);
-  if(post)openPost(post);
-  if(button.hasAttribute('data-blog-retry'))loadIndex();
+  if(button.dataset.blogTopic)openTopic(button.dataset.blogTopic);
+  if(button.hasAttribute('data-blog-back'))openTopic('');
+  if(button.hasAttribute('data-blog-more'))loadBlog({more:true});
+  if(button.hasAttribute('data-blog-retry'))loadBlog();
  });
- async function loadIndex(){
-  results.innerHTML='<p role="status">Cargando artículos…</p>';
+
+ async function publish(event){
+  event.preventDefault();
+  const form=event.currentTarget;
+  const button=form.querySelector('[type="submit"]');
+  if(button.disabled)return;
+  const message=form.elements.body.value.trim();
+  const title=form.elements.title?.value.trim()||'';
+  const target=form===replyForm?form.dataset.topic:'';
+  if(!message||(!target&&!title)){
+   status.textContent='Completa los campos para publicar.';
+   return;
+  }
+  const key=JSON.stringify([target,title,message]);
+  if(pending.get(form)?.key!==key)pending.set(form,{key,id:crypto.randomUUID()});
+  const attempt=pending.get(form);
+  button.disabled=true;
   try{
-   blogIndex??=readBlogFile('blog/index.json','json').catch(error=>{blogIndex=null;throw error;});
-   const entries=await blogIndex;
-   if(!root.isConnected)return;
-   posts=entries.filter(post=>/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(post.slug))
-    .sort((a,b)=>b.date.localeCompare(a.date));
-   category.replaceChildren(new Option('Todas',''),...[...new Set(posts.map(post=>post.category))].sort((a,b)=>a.localeCompare(b,'es')).map(name=>new Option(name,name)));
-   showList();
+   const result=await api('blog-publish',{id:attempt.id,topic:target,title,body:message});
+   if(!active())return;
+   pending.delete(form);
+   if((form===topicForm||form.dataset.topic===target)&&form.elements.body.value.trim()===message&&
+      (form.elements.title?.value.trim()||'')===title)form.reset();
+   if(form===topicForm&&topicId==='')openTopic(result.id);
+   if(form===replyForm&&topicId===target)loadBlog();
   }catch(error){
-   if(root.isConnected)results.innerHTML='<p role="alert">'+esc(error.message)+'</p><button type="button" class="btn secondary" data-blog-retry>Reintentar</button>';
+   if(active()&&(form===topicForm?topicId==='':topicId===target))status.textContent=error.message||'No se pudo publicar. Intenta de nuevo.';
+  }finally{
+   button.disabled=false;
   }
  }
- loadIndex();
+ topicForm.addEventListener('submit',publish);
+ replyForm.addEventListener('submit',publish);
+ loadBlog();
 }
+
 function blogChatMarkup(){
  return `<div class="blog-chat">
-  <button type="button" class="btn btn-primary blog-chat-launch" data-chat-launch aria-controls="blog-chat-panel" aria-expanded="false">Chat general</button>
-  <div class="blog-chat-panel" id="blog-chat-panel" role="region" aria-labelledby="blog-chat-title" hidden>
+  <div class="blog-chat-panel" id="blog-chat-panel" role="region" aria-labelledby="blog-chat-title">
    <div class="blog-chat-heading"><div><h2 id="blog-chat-title">Chat general</h2><p>Preguntas e inquietudes de la comunidad</p></div>
-    <button type="button" class="blog-chat-close" data-chat-close aria-label="Cerrar chat">×</button>
    </div>
    <div class="blog-chat-messages" role="log" aria-label="Mensajes" tabindex="0"></div>
    <form class="blog-chat-compose">
@@ -118,8 +135,6 @@ function blogChatMarkup(){
 function wireBlogChat(){
  const chat=$('#enjoy-blog .blog-chat');
  const account=session;
- const panel=chat.querySelector('#blog-chat-panel');
- const launch=chat.querySelector('[data-chat-launch]');
  const messages=chat.querySelector('[role="log"]');
  const status=chat.querySelector('[role="status"]');
  const form=chat.querySelector('form');
@@ -127,10 +142,10 @@ function wireBlogChat(){
  const submit=form.querySelector('button');
  const timestamp=new Intl.DateTimeFormat('es-EC',{dateStyle:'short',timeStyle:'short',timeZone:'America/Guayaquil'});
  let timer,requestId=0,pendingDelivery,lastMarkup='';
- const active=()=>!panel.hidden&&chat.isConnected&&session===account;
+ const active=()=>chat.isConnected&&session===account;
  function schedule(){
   clearTimeout(timer);
-  if(active())timer=setTimeout(loadMessages,12000);
+  if(active())timer=setTimeout(loadMessages,25000);
  }
  async function loadMessages(){
   clearTimeout(timer);
@@ -156,23 +171,7 @@ function wireBlogChat(){
    if(current===requestId)schedule();
   }
  }
- function setChatOpen(open){
-  panel.hidden=!open;
-  launch.setAttribute('aria-expanded',String(open));
-  if(open){
-   messages.focus();
-   loadMessages();
-  }else{
-   requestId++;
-   clearTimeout(timer);
-   launch.focus();
-  }
- }
- launch.addEventListener('click',()=>setChatOpen(panel.hidden));
- chat.querySelector('[data-chat-close]').addEventListener('click',()=>setChatOpen(false));
- chat.addEventListener('keydown',event=>{
-  if(event.key==='Escape'&&!panel.hidden){event.preventDefault();setChatOpen(false);}
- });
+ loadMessages();
  form.addEventListener('submit',async event=>{
   event.preventDefault();
   const body=input.value.trim();
@@ -196,12 +195,25 @@ function wireBlogChat(){
 }
 
 function blogPage(){
- return head('Blog','Temas generales e inquietudes de los usuarios de enjoy.')+
-  '<section id="enjoy-blog"><form class="blog-filters" hidden><label>Buscar artículos<input class="form-control" name="search" type="search" placeholder="Título o tema"></label>'+
-  '<label>Categoría<select class="form-select" name="category"></select></label></form>'+
-  '<div data-blog-results></div>'+blogChatMarkup()+'</section>';
+ return head('Blog','Comparte inquietudes y conversa con otros usuarios de enjoy.')+
+  `<section id="enjoy-blog" class="blog-layout">
+   <div class="blog-discussion">
+    <form class="card integration-pad blog-compose" data-blog-new>
+     <h2>Publicar un tema</h2>
+     <label>Título<input class="form-control" name="title" maxlength="120" required></label>
+     <label>¿Qué quieres compartir?<textarea class="form-control" name="body" rows="4" maxlength="3000" required></textarea></label>
+     <button class="btn btn-primary" type="submit">Publicar tema</button>
+    </form>
+    <p class="blog-feedback" data-blog-status role="status"></p>
+    <div class="blog-feed" data-blog-feed></div>
+    <form class="card integration-pad blog-compose" data-blog-reply hidden>
+     <label>Escribe una respuesta<textarea class="form-control" name="body" rows="3" maxlength="3000" required></textarea></label>
+     <button class="btn btn-primary" type="submit">Publicar respuesta</button>
+    </form>
+   </div>
+   ${blogChatMarkup()}
+  </section>`;
 }
-
 const menuScenes={monitor:[0,0],users:[1,0],catalogImport:[0,1],blog:[1,1],security:[0,2],calendar:[1,2],dashboard:[0,0]};
 function menuPhoto(view){
  const scene=menuScenes[view];
