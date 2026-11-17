@@ -9,7 +9,6 @@ const cents=n=>Math.round(Number(n)*100),sum=rows=>rows.reduce((n,r)=>n+cents(r.
 const catalog=()=>[...(data?.services||[]).filter(x=>x.active!==false).map(x=>({key:'s:'+x.id,id:x.id,kind:'service',name:x.name,serviceType:x.serviceType||'Diagnóstico',price:Math.round(total(x)*100)/100,unit:'Servicio'})),...(data?.products||[]).filter(x=>x.active).map(x=>({key:'p:'+x.id,id:x.id,kind:'product',name:x.name,price:Number(x.price),unit:x.attributes?.unit||'Unidad'}))];
 const permitted=v=>!!session&&(roleViews[session.role]||[]).includes(v);
 icons.blog='<path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4zm0 13h14M9 8h6m-6 4h6"/>';
-const blogDirectory='https://github.com/dariohcn/enjoy-simple/tree/main/blog';
 let blogIndex;
 const blogArticles=new Map();
 const blogDate=new Intl.DateTimeFormat('es-EC',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
@@ -99,8 +98,7 @@ function wireBlog(){
  loadIndex();
 }
 function blogPage(){
- const manage=session.role==='admin'?'<a class="btn secondary" href="'+blogDirectory+'" target="_blank" rel="noopener">Editar blog en GitHub ↗</a>':'';
- return head('Blog','Novedades de enjoy y guías para la operación del taller.',manage)+
+ return head('Blog','Novedades de enjoy y guías para la operación del taller.')+
   '<section id="enjoy-blog"><form class="blog-filters" hidden><label>Buscar artículos<input class="form-control" name="search" type="search" placeholder="Título o tema"></label>'+
   '<label>Categoría<select class="form-select" name="category"></select></label></form>'+
   '<div data-blog-results></div></section>';

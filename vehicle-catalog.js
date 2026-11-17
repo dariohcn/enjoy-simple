@@ -232,7 +232,7 @@ function wireAdmin(){
  }
  async function publish(payload,omissions){
   submit.disabled=true;confirm.disabled=true;
-  stage(3,'Guardando '+payload.items.length.toLocaleString('es-EC')+' partidas en Supabase…');
+  stage(3,'Guardando '+payload.items.length.toLocaleString('es-EC')+' partidas en el catálogo…');
   try{
    const result=await api('vehicle-catalog-import',payload);
    stage(4,'Importación completada: '+result.imported.toLocaleString('es-EC')+' partidas publicadas en '+payload.brand+' · '+typeLabel[payload.vehicle_type]+' · '+zoneLabel[payload.region]+'.'+(omissions.length?' Omitidas: '+omissions.length+'.':''));
