@@ -1,0 +1,7 @@
+## Antes de confirmar la cita
+
+Selecciona la ficha del cliente y del vehículo. Indica la fecha, hora, duración y motivo de la visita. Si el cliente solicita varios trabajos, anótalos para que el equipo pueda organizar la recepción.
+
+## Durante la jornada
+
+Actualiza el estado cuando el vehículo llegue o la cita cambie. Si reprogramas la visita, comprueba que el nuevo horario se refleje en la agenda.

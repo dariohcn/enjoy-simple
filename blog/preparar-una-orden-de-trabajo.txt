@@ -1,0 +1,11 @@
+## Recepción
+
+Verifica la placa y selecciona al cliente asociado. Describe el motivo de la visita con las palabras del cliente cuando ayuden a entender el síntoma. Si acordaron una fecha de entrega, regístrala en la orden.
+
+## Diagnóstico y autorización
+
+Registra los hallazgos antes de avanzar de etapa. Si el trabajo requiere autorización, deja constancia de lo acordado en la orden para que el equipo pueda consultarlo.
+
+## Entrega
+
+Marca la orden como Lista para entrega cuando el trabajo esté terminado. Pásala a Entregada cuando el vehículo haya sido retirado y consulta su historial desde el listado de órdenes.

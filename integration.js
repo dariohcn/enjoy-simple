@@ -3,12 +3,110 @@
 'use strict';
 const baseRender=render,baseGo=go,baseModal=modal;
 let identity='',vehicleId='',quoteId='',quoteLines=[],quotePhotos=[],quoteNo='',conditions='',saved=false;
-const roleViews={admin:['adminHome','maintenanceReport','monitor','admin','catalogImport','orders','reminders','security','chat'],owner:['overview','dashboard','maintenanceReport','proforma','registration','calendar','orders','clients','vehicles','maintenance','requests','alerts','reminders','security','chat','indicators']};
+const roleViews={admin:['adminHome','maintenanceReport','monitor','admin','catalogImport','orders','reminders','security','blog'],owner:['overview','dashboard','maintenanceReport','proforma','registration','calendar','orders','clients','vehicles','maintenance','requests','alerts','reminders','security','blog','indicators']};
 permittedViews=function(){return roleViews[session?.role]||[];};
 const cents=n=>Math.round(Number(n)*100),sum=rows=>rows.reduce((n,r)=>n+cents(r.price)*r.qty,0)/100;
 const catalog=()=>[...(data?.services||[]).filter(x=>x.active!==false).map(x=>({key:'s:'+x.id,id:x.id,kind:'service',name:x.name,serviceType:x.serviceType||'Diagnóstico',price:Math.round(total(x)*100)/100,unit:'Servicio'})),...(data?.products||[]).filter(x=>x.active).map(x=>({key:'p:'+x.id,id:x.id,kind:'product',name:x.name,price:Number(x.price),unit:x.attributes?.unit||'Unidad'}))];
 const permitted=v=>!!session&&(roleViews[session.role]||[]).includes(v);
-const menuScenes={monitor:[0,0],users:[1,0],catalogImport:[0,1],chat:[1,1],security:[0,2],calendar:[1,2],dashboard:[0,0]};
+icons.blog='<path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4zm0 13h14M9 8h6m-6 4h6"/>';
+const blogDirectory='https://github.com/dariohcn/enjoy-simple/tree/main/blog';
+let blogIndex;
+const blogArticles=new Map();
+const blogDate=new Intl.DateTimeFormat('es-EC',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+
+async function readBlogFile(path,format){
+ const response=await fetch(path);
+ if(!response.ok)throw Error('No se pudo cargar el contenido del blog.');
+ return response[format]();
+}
+function blogMetadata(post){
+ const date=blogDate.format(new Date(post.date+'T00:00:00Z'));
+ return '<p class="blog-meta">'+esc(post.category)+' <span aria-hidden="true">·</span> <time datetime="'+esc(post.date)+'">'+esc(date)+'</time></p>';
+}
+function wireBlog(){
+ const root=$('#enjoy-blog');
+ const results=root.querySelector('[data-blog-results]');
+ const filters=root.querySelector('form');
+ const category=filters.elements.category;
+ const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ let posts=[],visible=9,sequence=0;
+ function showList(focus=false){
+  sequence++;
+  filters.hidden=false;
+  const query=normalize(filters.elements.search.value.trim());
+  const matches=posts.filter(post=>(!category.value||post.category===category.value)&&
+   normalize([post.title,post.summary,post.category].join(' ')).includes(query));
+  const showFeatured=!query&&!category.value;
+  results.innerHTML=matches.length?'<div class="blog-grid">'+matches.slice(0,visible).map((post,index)=>
+   '<article class="blog-card'+(showFeatured&&index===0?' blog-featured':'')+'">'+blogMetadata(post)+
+   '<h2><button type="button" class="blog-title" data-blog-open="'+esc(post.slug)+'">'+esc(post.title)+'</button></h2>'+
+   '<p>'+esc(post.summary)+'</p></article>').join('')+'</div>'+
+   (matches.length>visible?'<button type="button" class="btn secondary" data-blog-more>Ver más artículos</button>':''):
+   '<p role="status">No hay artículos para esta selección.</p>';
+  if(focus)filters.elements.search.focus();
+ }
+ async function openPost(post){
+  const request=++sequence;
+  filters.hidden=true;
+  results.innerHTML='<button type="button" class="btn secondary" data-blog-back>← Todos los artículos</button>'+
+   '<article class="blog-article">'+blogMetadata(post)+'<h2 tabindex="-1">'+esc(post.title)+'</h2>'+
+   '<p class="blog-summary">'+esc(post.summary)+'</p><div data-blog-body aria-live="polite"><p>Cargando artículo…</p></div></article>';
+  results.querySelector('h2').focus();
+  const body=results.querySelector('[data-blog-body]');
+  try{
+   if(!blogArticles.has(post.slug)){
+    const pending=readBlogFile('blog/'+post.slug+'.txt','text').catch(error=>{blogArticles.delete(post.slug);throw error;});
+    blogArticles.set(post.slug,pending);
+   }
+   const article=await blogArticles.get(post.slug);
+   if(request!==sequence||!root.isConnected)return;
+   body.innerHTML=article.trim().split(/\r?\n\s*\r?\n/).map(block=>
+    block.startsWith('## ')?'<h3>'+esc(block.slice(3))+'</h3>':'<p>'+esc(block)+'</p>').join('');
+  }catch(error){
+   if(request===sequence&&root.isConnected)body.innerHTML='<p role="alert">'+esc(error.message)+'</p><button type="button" class="btn secondary" data-blog-open="'+esc(post.slug)+'">Reintentar</button>';
+  }
+ }
+ filters.addEventListener('submit',event=>event.preventDefault());
+ filters.addEventListener('input',()=>{visible=9;showList();});
+ results.addEventListener('click',event=>{
+  const button=event.target.closest('button');
+  if(!button)return;
+  if(button.hasAttribute('data-blog-back'))showList(true);
+  if(button.hasAttribute('data-blog-more')){
+   const previous=visible;
+   visible+=9;
+   showList();
+   results.querySelectorAll('[data-blog-open]')[previous]?.focus();
+  }
+  const post=posts.find(item=>item.slug===button.dataset.blogOpen);
+  if(post)openPost(post);
+  if(button.hasAttribute('data-blog-retry'))loadIndex();
+ });
+ async function loadIndex(){
+  results.innerHTML='<p role="status">Cargando artículos…</p>';
+  try{
+   blogIndex??=readBlogFile('blog/index.json','json').catch(error=>{blogIndex=null;throw error;});
+   const entries=await blogIndex;
+   if(!root.isConnected)return;
+   posts=entries.filter(post=>/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(post.slug))
+    .sort((a,b)=>b.date.localeCompare(a.date));
+   category.replaceChildren(new Option('Todas',''),...[...new Set(posts.map(post=>post.category))].sort((a,b)=>a.localeCompare(b,'es')).map(name=>new Option(name,name)));
+   showList();
+  }catch(error){
+   if(root.isConnected)results.innerHTML='<p role="alert">'+esc(error.message)+'</p><button type="button" class="btn secondary" data-blog-retry>Reintentar</button>';
+  }
+ }
+ loadIndex();
+}
+function blogPage(){
+ const manage=session.role==='admin'?'<a class="btn secondary" href="'+blogDirectory+'" target="_blank" rel="noopener">Editar blog en GitHub ↗</a>':'';
+ return head('Blog','Novedades de enjoy y guías para la operación del taller.',manage)+
+  '<section id="enjoy-blog"><form class="blog-filters" hidden><label>Buscar artículos<input class="form-control" name="search" type="search" placeholder="Título o tema"></label>'+
+  '<label>Categoría<select class="form-select" name="category"></select></label></form>'+
+  '<div data-blog-results></div></section>';
+}
+
+const menuScenes={monitor:[0,0],users:[1,0],catalogImport:[0,1],blog:[1,1],security:[0,2],calendar:[1,2],dashboard:[0,0]};
 function menuPhoto(view){
  const scene=menuScenes[view];
  if(scene){
@@ -22,9 +120,10 @@ const ownerCards=[
  ['Plan de mantenimiento','maintenanceReport','maintenance','Consulte por año, marca, modelo, versión y kilometraje'],
  ['Agendamiento','calendar','calendar','Organice las próximas citas del taller'],
  ['Abrir Orden','orders','services','Recepción y seguimiento de órdenes'],
- ['Panel de control','dashboard','indicators','Citas, mantenimientos y alarmas']
+ ['Panel de control','dashboard','indicators','Citas, mantenimientos y alarmas'],
+ ['Blog','blog','blog','Novedades y guías para talleres']
 ];
-const adminCards=[['Plan de mantenimiento','maintenanceReport','maintenance','Consultar repuestos y mano de obra'],['Panel de control','monitor','monitor','Indicadores de todos los talleres socios'],['Talleres','admin','directory','Solicitudes, permisos e IP de acceso'],['Importar catálogo','catalogImport','products','Excel y CSV por marca, tipo y región'],['Órdenes de la red','orders','services','Supervisar la operación de los talleres'],['Comunidad','chat','chat','Conversaciones de la red'],['Configuración','security','security','Cuenta y respaldo de administración']];
+const adminCards=[['Plan de mantenimiento','maintenanceReport','maintenance','Consultar repuestos y mano de obra'],['Panel de control','monitor','monitor','Indicadores de todos los talleres socios'],['Talleres','admin','directory','Solicitudes, permisos e IP de acceso'],['Importar catálogo','catalogImport','products','Excel y CSV por marca, tipo y región'],['Órdenes de la red','orders','services','Supervisar la operación de los talleres'],['Blog','blog','blog','Novedades y guías para talleres'],['Configuración','security','security','Cuenta y respaldo de administración']];
 function home(){const admin=session.role==='admin',logo=admin?'':safeImage(data.workshopImage);return head(admin?'Administración':'Inicio',admin?'Gestione la red, los accesos y la oferta de los talleres.':'Seleccione una tarea para continuar.',admin?'':'<button type="button" class="btn secondary" data-integrated-view="security">Configuración de usuario</button>')+'<section class="integration-hero'+(admin?'':' integration-hero-workshop')+'"><div class="integration-identity">'+(logo?'<img src="'+esc(logo)+'" alt="Logo del taller" width="56" height="56">':'')+'<span>'+esc(session.workshop||(admin?'Administración de enjoy':'Mi taller'))+'</span></div><h2>'+(admin?'Una red conectada. Una gestión central.':'Su taller, en marcha.')+'</h2><p>'+(admin?'Catálogo, talleres y supervisión de la operación.':'Cada vehículo, cada servicio y cada visita en un mismo espacio.')+'</p></section><div class="integration-grid">'+(admin?adminCards:ownerCards).map(([name,v,icon,desc])=>'<button type="button" class="integration-tile" data-integrated-view="'+v+'">'+menuPhoto(v)+'<span class="integration-icon">'+liveIcon(icon)+'</span><strong>'+name+'</strong><small>'+desc+'</small><span class="integration-arrow">↗</span></button>').join('')+(admin?'<button type="button" class="integration-tile" data-action="logout"><span class="integration-icon">'+liveIcon('security')+'</span><strong>Cerrar sesión</strong><small>Salir de su cuenta de forma segura</small></button>':'')+'</div>';}
 
 function maintenanceOptions(){
@@ -59,7 +158,7 @@ renderOrderPending=function(){if(!session)return;const actual=view;if(actual==='
 const baseAppointmentCard=appointmentCard;
 appointmentCard=function(a){const html=baseAppointmentCard(a);let products=a.associatedProducts||[];try{if(typeof products==='string')products=JSON.parse(products);}catch{products=[];}const extra=(a.catalogueServiceName?'<p>Servicio: '+esc(a.catalogueServiceName)+'</p>':'')+(Array.isArray(products)&&products.length?'<p>Productos: '+products.map(p=>esc(p.name)+' × '+Number(p.qty)).join(' · ')+'</p>':'');return html.replace('</article>',()=>'<div class="integration-appointment-detail">'+extra+'</div></article>');};
 go=function(next){if(!permitted(next))return toast('Esta sección no está disponible para su perfil.');return baseGo(next);};
-Object.assign(names,{monitor:['','Panel de control'],adminHome:['','Administración'],overview:['','Inicio'],dashboard:['','Panel de control'],proforma:['','Proforma'],registration:['','Registro'],catalogImport:['','Importar catálogo'],maintenanceReport:['','Plan de mantenimiento']});
+Object.assign(names,{blog:['','Blog'],monitor:['','Panel de control'],adminHome:['','Administración'],overview:['','Inicio'],dashboard:['','Panel de control'],proforma:['','Proforma'],registration:['','Registro'],catalogImport:['','Importar catálogo'],maintenanceReport:['','Plan de mantenimiento']});
 function updatePanelHomeButton(panel,role){
  const button=$('#panel-home');
  button.hidden=!panel;
@@ -69,13 +168,14 @@ render=function(){
  if(!session){updatePanelHomeButton(false);return baseRender();}
  if(identity!==session.email){identity=session.email;quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];quoteLines=[];vehicleId='';quoteId='';saved=false;quoteNo='';conditions='';if(session.role==='admin')view='adminHome';}
  if(!permitted(view))view=session.role==='admin'?'adminHome':'overview';
- const requested=view,custom=['adminHome','dashboard','maintenanceReport','proforma','registration','catalogImport'].includes(requested);
+ const requested=view,custom=['adminHome','dashboard','maintenanceReport','proforma','registration','catalogImport','blog'].includes(requested);
  const isControlPanel=requested==='dashboard'||requested==='monitor';
  updatePanelHomeButton(isControlPanel,session.role);
  if(custom)view=requested==='dashboard'?'overview':'security';
  baseRender();view=requested;if(!data)return;
  if(requested==='adminHome'||(requested==='overview'&&session.role==='owner'))$('#contenido').innerHTML=home();
  if(requested==='maintenanceReport'){$('#contenido').innerHTML=maintenanceReport();window.EnjoyVehicleCatalog.wirePlan(maintenanceOptions());}
+ if(requested==='blog'){$('#contenido').innerHTML=blogPage();wireBlog();}
  if(requested==='proforma')$('#contenido').innerHTML=quote();
  if(requested==='dashboard'){$('#contenido').innerHTML=window.EnjoyVehicleCatalog.dashboard();window.EnjoyVehicleCatalog.wireDashboard();}
  if(requested==='monitor'&&session.role==='admin')window.EnjoyVehicleCatalog.arrangeNetworkSummary();
@@ -87,7 +187,7 @@ render=function(){
  $('#crumb').textContent=requested==='security'&&session.role==='owner'?'Configuración de usuario':names[requested]?.[1]||names.security[1];
  const entries=session.role==='admin'?[['Administración','adminHome'],...adminCards.map(c=>[c[0],c[1]])]:[...ownerCards.map(c=>[c[0],c[1]]),['Configuración de usuario','security']];
  $('#nav').innerHTML=entries.map(([label,v])=>'<button data-integrated-view="'+v+'" class="'+(v===requested?'active':'')+'" '+(v===requested?'aria-current="page"':'')+'>'+label+'</button>').join('')+'<button data-action="logout">Cerrar sesión</button>';
- $('#mobile-nav').innerHTML=(session.role==='admin'?[['Inicio','adminHome'],['Plan de mantenimiento','maintenanceReport'],['Panel','monitor'],['Talleres','admin']]:ownerCards.map(c=>[c[0],c[1]])).map(([label,v])=>'<button data-integrated-view="'+v+'" '+(v===requested?'class="active" aria-current="page"':'')+'>'+label+'</button>').join('');
+ $('#mobile-nav').innerHTML=(session.role==='admin'?[['Inicio','adminHome'],['Plan de mantenimiento','maintenanceReport'],['Panel','monitor'],['Talleres','admin']]:ownerCards.filter(c=>c[1]!=='blog').map(c=>[c[0],c[1]])).map(([label,v])=>'<button data-integrated-view="'+v+'" '+(v===requested?'class="active" aria-current="page"':'')+'>'+label+'</button>').join('');
  if(!isControlPanel&&!['overview','adminHome'].includes(requested)){
   const startView=session.role==='admin'?'adminHome':'overview';
   $('#contenido').insertAdjacentHTML('afterbegin','<button type="button" class="btn secondary integration-back" data-integrated-view="'+startView+'">← Volver al inicio</button>');

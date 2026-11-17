@@ -1,0 +1,23 @@
+[
+  {
+    "slug": "preparar-una-orden-de-trabajo",
+    "title": "Qué registrar al abrir una orden de trabajo",
+    "summary": "Una pauta para recibir el vehículo, describir el trabajo y dar seguimiento a la entrega.",
+    "category": "Órdenes de trabajo",
+    "date": "2026-11-17"
+  },
+  {
+    "slug": "revisar-una-proforma",
+    "title": "Qué revisar antes de enviar una proforma",
+    "summary": "Comprueba las partidas, las cantidades y las condiciones que verá el cliente en el PDF.",
+    "category": "Proformas",
+    "date": "2026-11-17"
+  },
+  {
+    "slug": "preparar-la-agenda",
+    "title": "Cómo preparar la agenda del taller",
+    "summary": "Organiza las próximas visitas en función del vehículo, el motivo y el tiempo previsto.",
+    "category": "Agendamiento",
+    "date": "2026-11-17"
+  }
+]
