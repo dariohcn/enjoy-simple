@@ -25,9 +25,46 @@ const date=d=>new Date(d+'T12:00:00').toLocaleDateString('es-EC',{day:'numeric',
 function button(label,action,id='',secondary=false){return `<button class="btn ${secondary?'secondary btn-outline-primary':'btn-primary'}" data-action="${action}" data-id="${esc(id)}">${label}</button>`}
 function head(title,description,action=''){return `<div class="page-head"><div><span class="eyebrow">${session?.role==='admin'?'ADMINISTRACIÓN':'ESPACIO DEL TALLER'}</span><h1>${title}</h1><p>${description}</p></div>${action}</div>`}
 function table(headers,rows){return `<div class="card table-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')||`<tr><td colspan="${headers.length}" class="empty">No hay registros para mostrar.</td></tr>`}</tbody></table></div>`}
-function field(label,name,value='',type='text',required=true){return `<label>${label}<input class="form-control" name="${name}" type="${type}" ${type==='number'?'min="0" step="any"':''} value="${esc(value)}" ${required?'required':''}></label>`}
+function normalizePhone(value){
+ const raw=value.trim().replace(/[\s().-]/g,'').replace(/^00/,'+');
+ if(!raw||/^\+?593$/.test(raw))return '';
+ if(!/^\+?\d+$/.test(raw))return null;
+ let digits=raw.replace(/^\+/,'');
+ if(/^593/.test(digits)){
+  digits=digits.slice(3).replace(/^0/,'');
+  return /^(9\d{8}|[2-7]\d{7})$/.test(digits)?'593'+digits:null;
+ }
+ if(!raw.startsWith('+')&&/^0?(9\d{8}|[2-7]\d{7})$/.test(digits))return '593'+digits.replace(/^0/,'');
+ return /^[1-9]\d{7,14}$/.test(digits)?digits:null;
+}
+function field(label,name,value='',type='text',required=true){return `<label>${label}<input class="form-control" name="${name}" type="${type}" ${type==='number'?'min="0" step="any"':''} ${type==='tel'?'autocomplete="tel"':''} value="${esc(type==='tel'?(value||'+593 '):value)}" ${required?'required':''}></label>`}
 function select(label,name,items,value=''){return `<label>${label}<select class="form-select" name="${name}" required><option value="">Seleccione una opción</option>${items.map(x=>`<option value="${esc(x.id)}" ${x.id===value?'selected':''}>${esc(x.name||x.plate)}</option>`).join('')}</select></label>`}
-function modal(title,fields,save,submit='Guardar'){ $('#dialog-content').innerHTML=`<div class="dialog-head"><h2>${title}</h2><button type="button" class="icon-button" data-action="close" aria-label="Cerrar">×</button></div><div class="fields">${fields}</div><div class="dialog-footer"><button type="button" class="btn secondary" data-action="close">Cancelar</button><button class="btn" type="submit">${submit}</button></div>`;$('#form').onsubmit=async e=>{e.preventDefault();const b=$('#form button[type=submit]');b.disabled=true;try{await save(Object.fromEntries(new FormData($('#form'))));$('#dialog').close()}catch(e){toast(e.message)}finally{b.disabled=false}};$('#dialog').showModal()}
+function modal(title,fields,save,submit='Guardar'){ $('#dialog-content').innerHTML=`<div class="dialog-head"><h2>${title}</h2><button type="button" class="icon-button" data-action="close" aria-label="Cerrar">×</button></div><div class="fields">${fields}</div><div class="dialog-footer"><button type="button" class="btn secondary" data-action="close">Cancelar</button><button class="btn" type="submit">${submit}</button></div>`;
+ const form=$('#form');
+ const phone=form.querySelector('input[type="tel"][name="phone"]');
+ phone?.addEventListener('input',()=>phone.setCustomValidity(''));
+ form.elements.whatsappOptIn?.addEventListener('change',()=>phone?.setCustomValidity(''));
+ form.onsubmit=async event=>{
+  event.preventDefault();
+  const values=Object.fromEntries(new FormData(form));
+  if(phone){
+   const number=normalizePhone(phone.value);
+   const needsPhone=phone.required||values.whatsappOptIn==='on';
+   if(number===null||(!number&&needsPhone)){
+    phone.setCustomValidity(number===null?'Corrige el número. Ejemplo de celular en Ecuador: +593 99 123 4567.':'Ingresa un número de teléfono completo.');
+    phone.reportValidity();
+    return;
+   }
+   values.phone=number;
+  }
+  const button=form.querySelector('button[type="submit"]');
+  button.disabled=true;
+  try{await save(values);$('#dialog').close();}
+  catch(error){toast(error.message);}
+  finally{button.disabled=false;}
+ };
+ $('#dialog').showModal();
+}
 async function refresh(){data=await api('data');render()}
 async function save(collection,record){await api('save',{collection,record});await refresh();toast('Registro guardado correctamente.')}
 function loginPage(){document.body.classList.add('logged-out');$('#nav').innerHTML='';$('#crumb').textContent='Acceso';$('#contenido').innerHTML=`<div class="auth-layout"><section class="auth-intro"><div class="auth-video"><video muted autoplay loop playsinline poster="assets/driving-poster.jpg" aria-label="Vehículo circulando por carretera"><source src="assets/enjoy-driving-28.mp4" type="video/mp4"></video></div><a class="auth-brand" href="./" aria-label="enjoy, inicio">enjoy<span>GESTIÓN AUTOMOTRIZ</span></a><div class="auth-message"><span class="eyebrow">EL ESPACIO DE SU TALLER</span><h1><span>Su taller,</span><span>bien organizado.</span></h1><p>Clientes, vehículos y agenda.<br>Todo en un mismo lugar.</p><div class="auth-feature-line"><span>Clientes</span><span>Vehículos</span><span>Agenda</span></div></div></section><section class="login-card card"><div class="login-content"><div class="auth-form-heading"><span class="auth-access-mark">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>'}</span><span>ACCESO DE PROPIETARIOS</span></div><h2>Bienvenido a enjoy</h2><p>Ingrese para continuar con la gestión de su taller.</p><form id="login-form">${field('Correo electrónico','email','','email')}${field('Contraseña','password','','password')}<button class="btn btn-primary" type="submit">Iniciar sesión <span aria-hidden="true">→</span></button><p id="login-error" role="alert"></p></form><div class="register-link"><p>¿Aún no tiene una cuenta?</p>${button('Solicitar registro del taller','register','',true)}<small>El administrador revisará la solicitud de su taller.</small></div></div><div class="auth-credit"><span>enjoy · Gestión automotriz</span><a href="https://neodat.net" target="_blank" rel="noopener">Desarrollado por Neodat Consultores ↗</a></div></section></div>`;$('#login-form').onsubmit=async e=>{e.preventDefault();const submit=e.target.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Ingresando…';try{session=await api('login',Object.fromEntries(new FormData(e.target)));document.body.classList.remove('logged-out');view=session.role==='admin'?'adminHome':'overview';await refresh()}catch(e){document.body.classList.add('logged-out');$('#login-error').textContent=e.message;submit.disabled=false;submit.innerHTML='Iniciar sesión <span aria-hidden="true">→</span>'}};videos()}
