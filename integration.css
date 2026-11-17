@@ -56,10 +56,6 @@ body.platform-adapted #contenido .catalog-matrix table{min-width:720px}
 #contenido .catalog-matrix td:nth-child(5){text-align:right;font-variant-numeric:tabular-nums}
 #contenido .catalog-matrix td:last-child{white-space:nowrap}
 
-#panel-home{margin-inline-start:auto;flex:none;white-space:nowrap;min-height:32px;padding:4px 10px;font-size:13px}
-#panel-home[hidden]{display:none}
-#panel-home:not([hidden])+#account{margin-inline-start:0}
-@media(max-width:480px){.shell>header:has(#panel-home:not([hidden])) .header-context:before{display:none}}
 
 /* Blog */
 .blog-filters{display:grid;grid-template-columns:minmax(0,2fr) minmax(160px,1fr);gap:12px;max-width:720px;margin-bottom:24px}
