@@ -81,7 +81,15 @@ render=function(){
  const entries=session.role==='admin'?[['Administración','adminHome'],...adminCards.map(c=>[c[0],c[1]])]:[...ownerCards.map(c=>[c[0],c[1]]),['Configuración de usuario','security']];
  $('#nav').innerHTML=entries.map(([label,v])=>'<button data-integrated-view="'+v+'" class="'+(v===requested?'active':'')+'" '+(v===requested?'aria-current="page"':'')+'>'+label+'</button>').join('')+'<button data-action="logout">Cerrar sesión</button>';
  $('#mobile-nav').innerHTML=(session.role==='admin'?[['Inicio','adminHome'],['Plan de mantenimiento','maintenanceReport'],['Panel','monitor'],['Talleres','admin']]:ownerCards.map(c=>[c[0],c[1]])).map(([label,v])=>'<button data-integrated-view="'+v+'" '+(v===requested?'class="active" aria-current="page"':'')+'>'+label+'</button>').join('');
- if(!['overview','adminHome'].includes(requested))$('#contenido').insertAdjacentHTML('afterbegin','<button class="btn secondary integration-back" data-integrated-view="'+(session.role==='admin'?'adminHome':'overview')+'">← Volver a Inicio</button>');
+ if(!['overview','adminHome'].includes(requested)){
+  const content=$('#contenido');
+  const isControlPanel=requested==='dashboard'||requested==='monitor';
+  const header=isControlPanel&&content.querySelector('.page-head,.live-title,.network-heading');
+  const actions=header&&(header.querySelector('.dashboard-hero-actions,.actions')||header);
+  const startView=session.role==='admin'?'adminHome':'overview';
+  const backButton='<button type="button" class="btn secondary'+(header?'':' integration-back')+'" data-integrated-view="'+startView+'">← Volver al inicio</button>';
+  (actions||content).insertAdjacentHTML(actions?'beforeend':'afterbegin',backButton);
+ }
 
  labelTables();
 };
