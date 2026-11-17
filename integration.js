@@ -31,7 +31,7 @@ function wireBlog(){
  let posts=[],visible=9,sequence=0;
  function showList(focus=false){
   sequence++;
-  filters.hidden=false;
+  filters.hidden=!posts.length;
   const query=normalize(filters.elements.search.value.trim());
   const matches=posts.filter(post=>(!category.value||post.category===category.value)&&
    normalize([post.title,post.summary,post.category].join(' ')).includes(query));
@@ -41,7 +41,7 @@ function wireBlog(){
    '<h2><button type="button" class="blog-title" data-blog-open="'+esc(post.slug)+'">'+esc(post.title)+'</button></h2>'+
    '<p>'+esc(post.summary)+'</p></article>').join('')+'</div>'+
    (matches.length>visible?'<button type="button" class="btn secondary" data-blog-more>Ver más artículos</button>':''):
-   '<p role="status">No hay artículos para esta selección.</p>';
+   '<p role="status">'+(posts.length?'No hay artículos para esta selección.':'Aún no hay artículos publicados.')+'</p>';
   if(focus)filters.elements.search.focus();
  }
  async function openPost(post){
@@ -97,11 +97,108 @@ function wireBlog(){
  }
  loadIndex();
 }
+function blogChatMarkup(){
+ return '<details class="blog-chat"><summary class="btn btn-primary">Chat</summary>'+
+  '<section class="card blog-chat-panel" aria-labelledby="blog-chat-title"><h2 id="blog-chat-title">Chat</h2>'+
+  '<label>Conversación<select class="form-select" name="recipient"><option value="">Canal general</option></select></label>'+
+  '<div class="blog-chat-messages" role="log" aria-label="Mensajes" tabindex="0"></div>'+
+  '<form><label>Mensaje<textarea class="form-control" name="message" rows="2" maxlength="2000" required></textarea></label>'+
+  '<p class="blog-chat-status" role="status"></p><button type="submit" class="btn btn-primary">Enviar</button></form></section></details>';
+}
+
+function wireBlogChat(){
+ const chat=$('#enjoy-blog .blog-chat');
+ const account=session;
+ const recipient=chat.querySelector('select');
+ const messages=chat.querySelector('[role="log"]');
+ const status=chat.querySelector('[role="status"]');
+ const form=chat.querySelector('form');
+ const input=form.elements.message;
+ const submit=form.querySelector('button');
+ const timestamp=new Intl.DateTimeFormat('es-EC',{dateStyle:'short',timeStyle:'short',timeZone:'America/Guayaquil'});
+ let timer,requestId=0,contactsLoaded=false,pendingDelivery,lastMarkup='';
+ const active=()=>chat.open&&chat.isConnected&&session===account;
+ function schedule(){
+  clearTimeout(timer);
+  if(active())timer=setTimeout(loadMessages,12000);
+ }
+ async function loadMessages(){
+  clearTimeout(timer);
+  if(!active())return;
+  if(document.hidden){schedule();return;}
+  const current=++requestId;
+  const selected=recipient.value;
+  try{
+   const result=await api('chat-list',{recipient:selected});
+   if(!active()||current!==requestId)return;
+   const markup=(result.messages||[]).map(message=>
+    '<article class="blog-chat-message'+(message.mine?' mine':'')+'"><strong>'+esc(message.name)+'</strong>'+
+    '<p>'+esc(message.body)+'</p><small>'+esc(timestamp.format(new Date(message.created)))+'</small></article>'
+   ).join('')||'<p class="blog-chat-empty">Todavía no hay mensajes.</p>';
+   if(markup!==lastMarkup){
+    const atEnd=lastMarkup===''||messages.scrollHeight-messages.scrollTop-messages.clientHeight<65;
+    messages.innerHTML=markup;
+    lastMarkup=markup;
+    if(atEnd)messages.scrollTop=messages.scrollHeight;
+   }
+  }catch{
+   if(active()&&current===requestId&&lastMarkup==='')messages.textContent='No se pudieron cargar los mensajes. Se volverá a intentar.';
+  }finally{
+   if(current===requestId)schedule();
+  }
+ }
+ async function loadContacts(){
+  if(contactsLoaded)return;
+  try{
+   const result=await api('chat-members');
+   if(!active()||contactsLoaded)return;
+   for(const member of result.members||[])recipient.add(new Option(member.name,member.id));
+   contactsLoaded=true;
+  }catch{
+   if(active())status.textContent='No se pudieron cargar los contactos. Puedes usar el canal general.';
+  }
+ }
+ chat.addEventListener('toggle',()=>{
+  if(!active()){requestId++;clearTimeout(timer);return;}
+  loadContacts();
+  loadMessages();
+ });
+ recipient.addEventListener('change',()=>{
+  messages.textContent='Cargando mensajes…';
+  lastMarkup='';
+  status.textContent='';
+  loadMessages();
+ });
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const body=input.value.trim();
+  if(!active()||!body||submit.disabled)return;
+  const selected=recipient.value;
+  if(pendingDelivery?.body!==body||pendingDelivery?.recipient!==selected)
+   pendingDelivery={body,recipient:selected,nonce:crypto.randomUUID()};
+  submit.disabled=true;
+  recipient.disabled=true;
+  status.textContent='Enviando…';
+  try{
+   await api('chat-send',pendingDelivery);
+   pendingDelivery=null;
+   if(input.value.trim()===body)input.value='';
+   status.textContent='';
+   if(active()){await loadMessages();messages.scrollTop=messages.scrollHeight;}
+  }catch{
+   status.textContent='No se pudo enviar el mensaje. Intenta de nuevo.';
+  }finally{
+   submit.disabled=false;
+   recipient.disabled=false;
+  }
+ });
+}
+
 function blogPage(){
  return head('Blog','Novedades de enjoy y guías para la operación del taller.')+
   '<section id="enjoy-blog"><form class="blog-filters" hidden><label>Buscar artículos<input class="form-control" name="search" type="search" placeholder="Título o tema"></label>'+
   '<label>Categoría<select class="form-select" name="category"></select></label></form>'+
-  '<div data-blog-results></div></section>';
+  '<div data-blog-results></div>'+blogChatMarkup()+'</section>';
 }
 
 const menuScenes={monitor:[0,0],users:[1,0],catalogImport:[0,1],blog:[1,1],security:[0,2],calendar:[1,2],dashboard:[0,0]};
@@ -166,7 +263,7 @@ render=function(){
  baseRender();view=requested;if(!data)return;
  if(requested==='adminHome'||(requested==='overview'&&session.role==='owner'))$('#contenido').innerHTML=home();
  if(requested==='maintenanceReport'){$('#contenido').innerHTML=maintenanceReport();window.EnjoyVehicleCatalog.wirePlan(maintenanceOptions());}
- if(requested==='blog'){$('#contenido').innerHTML=blogPage();wireBlog();}
+ if(requested==='blog'){$('#contenido').innerHTML=blogPage();wireBlog();wireBlogChat();}
  if(requested==='proforma')$('#contenido').innerHTML=quote();
  if(requested==='dashboard'){$('#contenido').innerHTML=window.EnjoyVehicleCatalog.dashboard();window.EnjoyVehicleCatalog.wireDashboard();}
  if(requested==='calendar'&&session.role==='owner')$('#contenido').insertAdjacentHTML('afterbegin','<div data-vehicle-alarms>'+window.EnjoyVehicleCatalog.alarmBanner()+'</div>');
