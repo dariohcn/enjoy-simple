@@ -98,9 +98,9 @@ function wireBlog(){
  loadIndex();
 }
 function blogChatMarkup(){
- return '<details class="blog-chat"><summary class="btn btn-primary">Chat</summary>'+
-  '<section class="card blog-chat-panel" aria-labelledby="blog-chat-title"><h2 id="blog-chat-title">Chat</h2>'+
-  '<label>Conversación<select class="form-select" name="recipient"><option value="">Canal general</option></select></label>'+
+ return '<details class="blog-chat"><summary class="btn btn-primary">Chat general</summary>'+
+  '<section class="card blog-chat-panel" aria-labelledby="blog-chat-title"><h2 id="blog-chat-title">Chat general</h2>'+
+  '<p>Comparte tus preguntas e inquietudes con los demás usuarios de enjoy.</p>'+
   '<div class="blog-chat-messages" role="log" aria-label="Mensajes" tabindex="0"></div>'+
   '<form><label>Mensaje<textarea class="form-control" name="message" rows="2" maxlength="2000" required></textarea></label>'+
   '<p class="blog-chat-status" role="status"></p><button type="submit" class="btn btn-primary">Enviar</button></form></section></details>';
@@ -109,14 +109,13 @@ function blogChatMarkup(){
 function wireBlogChat(){
  const chat=$('#enjoy-blog .blog-chat');
  const account=session;
- const recipient=chat.querySelector('select');
  const messages=chat.querySelector('[role="log"]');
  const status=chat.querySelector('[role="status"]');
  const form=chat.querySelector('form');
  const input=form.elements.message;
  const submit=form.querySelector('button');
  const timestamp=new Intl.DateTimeFormat('es-EC',{dateStyle:'short',timeStyle:'short',timeZone:'America/Guayaquil'});
- let timer,requestId=0,contactsLoaded=false,pendingDelivery,lastMarkup='';
+ let timer,requestId=0,pendingDelivery,lastMarkup='';
  const active=()=>chat.open&&chat.isConnected&&session===account;
  function schedule(){
   clearTimeout(timer);
@@ -127,9 +126,8 @@ function wireBlogChat(){
   if(!active())return;
   if(document.hidden){schedule();return;}
   const current=++requestId;
-  const selected=recipient.value;
   try{
-   const result=await api('chat-list',{recipient:selected});
+   const result=await api('chat-list',{recipient:''});
    if(!active()||current!==requestId)return;
    const markup=(result.messages||[]).map(message=>
     '<article class="blog-chat-message'+(message.mine?' mine':'')+'"><strong>'+esc(message.name)+'</strong>'+
@@ -147,37 +145,17 @@ function wireBlogChat(){
    if(current===requestId)schedule();
   }
  }
- async function loadContacts(){
-  if(contactsLoaded)return;
-  try{
-   const result=await api('chat-members');
-   if(!active()||contactsLoaded)return;
-   for(const member of result.members||[])recipient.add(new Option(member.name,member.id));
-   contactsLoaded=true;
-  }catch{
-   if(active())status.textContent='No se pudieron cargar los contactos. Puedes usar el canal general.';
-  }
- }
  chat.addEventListener('toggle',()=>{
   if(!active()){requestId++;clearTimeout(timer);return;}
-  loadContacts();
-  loadMessages();
- });
- recipient.addEventListener('change',()=>{
-  messages.textContent='Cargando mensajes…';
-  lastMarkup='';
-  status.textContent='';
   loadMessages();
  });
  form.addEventListener('submit',async event=>{
   event.preventDefault();
   const body=input.value.trim();
   if(!active()||!body||submit.disabled)return;
-  const selected=recipient.value;
-  if(pendingDelivery?.body!==body||pendingDelivery?.recipient!==selected)
-   pendingDelivery={body,recipient:selected,nonce:crypto.randomUUID()};
+  if(pendingDelivery?.body!==body)
+   pendingDelivery={body,recipient:'',nonce:crypto.randomUUID()};
   submit.disabled=true;
-  recipient.disabled=true;
   status.textContent='Enviando…';
   try{
    await api('chat-send',pendingDelivery);
@@ -189,13 +167,12 @@ function wireBlogChat(){
    status.textContent='No se pudo enviar el mensaje. Intenta de nuevo.';
   }finally{
    submit.disabled=false;
-   recipient.disabled=false;
   }
  });
 }
 
 function blogPage(){
- return head('Blog','Novedades de enjoy y guías para la operación del taller.')+
+ return head('Blog','Temas generales e inquietudes de los usuarios de enjoy.')+
   '<section id="enjoy-blog"><form class="blog-filters" hidden><label>Buscar artículos<input class="form-control" name="search" type="search" placeholder="Título o tema"></label>'+
   '<label>Categoría<select class="form-select" name="category"></select></label></form>'+
   '<div data-blog-results></div>'+blogChatMarkup()+'</section>';
