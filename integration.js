@@ -98,17 +98,28 @@ function wireBlog(){
  loadIndex();
 }
 function blogChatMarkup(){
- return '<details class="blog-chat"><summary class="btn btn-primary">Chat general</summary>'+
-  '<section class="card blog-chat-panel" aria-labelledby="blog-chat-title"><h2 id="blog-chat-title">Chat general</h2>'+
-  '<p>Comparte tus preguntas e inquietudes con los demás usuarios de enjoy.</p>'+
-  '<div class="blog-chat-messages" role="log" aria-label="Mensajes" tabindex="0"></div>'+
-  '<form><label>Mensaje<textarea class="form-control" name="message" rows="2" maxlength="2000" required></textarea></label>'+
-  '<p class="blog-chat-status" role="status"></p><button type="submit" class="btn btn-primary">Enviar</button></form></section></details>';
+ return `<div class="blog-chat">
+  <button type="button" class="btn btn-primary blog-chat-launch" data-chat-launch aria-controls="blog-chat-panel" aria-expanded="false">Chat general</button>
+  <div class="blog-chat-panel" id="blog-chat-panel" role="region" aria-labelledby="blog-chat-title" hidden>
+   <div class="blog-chat-heading"><div><h2 id="blog-chat-title">Chat general</h2><p>Preguntas e inquietudes de la comunidad</p></div>
+    <button type="button" class="blog-chat-close" data-chat-close aria-label="Cerrar chat">×</button>
+   </div>
+   <div class="blog-chat-messages" role="log" aria-label="Mensajes" tabindex="0"></div>
+   <form class="blog-chat-compose">
+    <label for="blog-chat-message">Mensaje</label>
+    <div class="blog-chat-compose-row"><textarea id="blog-chat-message" class="form-control" name="message" rows="2" maxlength="2000" placeholder="Escribe tu consulta…" required></textarea>
+     <button type="submit" class="btn btn-primary">Enviar</button></div>
+    <p class="blog-chat-status" role="status"></p>
+   </form>
+  </div>
+ </div>`;
 }
 
 function wireBlogChat(){
  const chat=$('#enjoy-blog .blog-chat');
  const account=session;
+ const panel=chat.querySelector('#blog-chat-panel');
+ const launch=chat.querySelector('[data-chat-launch]');
  const messages=chat.querySelector('[role="log"]');
  const status=chat.querySelector('[role="status"]');
  const form=chat.querySelector('form');
@@ -116,7 +127,7 @@ function wireBlogChat(){
  const submit=form.querySelector('button');
  const timestamp=new Intl.DateTimeFormat('es-EC',{dateStyle:'short',timeStyle:'short',timeZone:'America/Guayaquil'});
  let timer,requestId=0,pendingDelivery,lastMarkup='';
- const active=()=>chat.open&&chat.isConnected&&session===account;
+ const active=()=>!panel.hidden&&chat.isConnected&&session===account;
  function schedule(){
   clearTimeout(timer);
   if(active())timer=setTimeout(loadMessages,12000);
@@ -145,9 +156,22 @@ function wireBlogChat(){
    if(current===requestId)schedule();
   }
  }
- chat.addEventListener('toggle',()=>{
-  if(!active()){requestId++;clearTimeout(timer);return;}
-  loadMessages();
+ function setChatOpen(open){
+  panel.hidden=!open;
+  launch.setAttribute('aria-expanded',String(open));
+  if(open){
+   messages.focus();
+   loadMessages();
+  }else{
+   requestId++;
+   clearTimeout(timer);
+   launch.focus();
+  }
+ }
+ launch.addEventListener('click',()=>setChatOpen(panel.hidden));
+ chat.querySelector('[data-chat-close]').addEventListener('click',()=>setChatOpen(false));
+ chat.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!panel.hidden){event.preventDefault();setChatOpen(false);}
  });
  form.addEventListener('submit',async event=>{
   event.preventDefault();

@@ -79,19 +79,27 @@ body.platform-adapted #contenido .catalog-matrix table{min-width:720px}
 @media(max-width:760px){.blog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.blog-grid,.blog-filters{grid-template-columns:minmax(0,1fr)}.blog-featured{grid-column:auto}}
 
-.blog-chat{position:fixed;inset-inline-end:max(16px,var(--gutter,16px));inset-block-end:calc(18px + env(safe-area-inset-bottom,0px));z-index:25}
-.blog-chat>summary{display:flex;justify-content:center;min-width:84px;cursor:pointer;list-style:none;box-shadow:0 3px 12px #123e6329}
-.blog-chat>summary::-webkit-details-marker{display:none}
-.blog-chat-panel{position:absolute;inset-inline-end:0;bottom:calc(100% + 10px);width:min(380px,calc(100vw - 36px));max-height:min(610px,calc(100dvh - 110px));overflow:auto;padding:16px;background:#fff;box-shadow:0 8px 28px #123e6329}
-.blog-chat-panel h2{margin:0 0 10px}
-.blog-chat-panel label{display:grid;gap:4px;font-weight:600}
-.blog-chat-messages{height:clamp(90px,30dvh,260px);overflow:auto;overscroll-behavior:contain;margin:10px 0;padding:8px;background:#f1f5f8;border-radius:8px}
-.blog-chat-message{background:#fff;border-radius:8px;padding:8px;margin-bottom:6px;overflow-wrap:anywhere}
-.blog-chat-message.mine{background:#e5f1fb}
-.blog-chat-message p{margin:3px 0;white-space:pre-wrap}
-.blog-chat-message small,.blog-chat-empty,.blog-chat-status{color:#38556b}
-.blog-chat-status{margin:4px 0}
+.blog-chat{position:fixed;inset-inline-end:max(14px,var(--gutter,14px));inset-block-end:calc(18px + env(safe-area-inset-bottom,0px));z-index:25}
+.blog-chat .blog-chat-launch{min-height:44px;padding-inline:18px;white-space:nowrap;box-shadow:0 3px 12px #123e6333}
+.blog-chat .blog-chat-panel{position:absolute;inset-inline-end:0;inset-block-end:calc(100% + 10px);inline-size:min(390px,calc(100vw - 32px));max-inline-size:none;block-size:min(510px,calc(100dvh - 95px));box-sizing:border-box;display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;background:#fff;border:1px solid #c9dce9;border-radius:14px;box-shadow:0 14px 44px #143a552e}
+.blog-chat .blog-chat-panel[hidden]{display:none}
+.blog-chat-heading{background:#164d76;color:#fff;padding:14px 15px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.blog-chat .blog-chat-heading h2{margin:0;color:#fff;font-size:17px;line-height:1.3}
+.blog-chat .blog-chat-heading p{margin:4px 0 0;color:#e6f2fa;font-size:13px;line-height:1.35}
+.blog-chat-close{flex:none;width:40px;height:40px;border:1px solid #ffffff78;border-radius:8px;background:transparent;color:white;font-size:24px;line-height:1;cursor:pointer}
+.blog-chat-close:hover,.blog-chat-close:focus-visible{background:#ffffff26}
+.blog-chat-messages{min-inline-size:0;overflow:auto;overscroll-behavior:contain;padding:14px;background:#f2f6fa}
+.blog-chat-message{width:fit-content;max-width:90%;background:#fff;border:1px solid #dce5ec;border-radius:10px;padding:8px 11px;margin:0 0 8px;overflow-wrap:anywhere}
+.blog-chat-message.mine{margin-inline-start:auto;background:#e1effc}
+.blog-chat .blog-chat-message p{margin:3px 0;white-space:pre-wrap;color:#203d54}
+.blog-chat-message small,.blog-chat-empty,.blog-chat-status{color:#38556b;font-size:12px}
+.blog-chat .blog-chat-empty{margin:12px auto;text-align:center;font-size:14px}
+.blog-chat-compose{min-inline-size:0;border-top:1px solid #dce5ec;background:#fff;padding:10px 12px}
+.blog-chat-compose label{display:block;margin:0 0 4px;color:#203d54;font-size:13px;font-weight:600}
+.blog-chat-compose-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px}
+.blog-chat .blog-chat-compose textarea{min-inline-size:0;width:100%;min-height:56px;resize:none}
+.blog-chat .blog-chat-compose button{min-height:42px}
+.blog-chat .blog-chat-status{margin:5px 0 0}
 .blog-chat-status:empty{display:none}
-.blog-chat-panel form button{margin-top:6px}
 #enjoy-blog{padding-bottom:56px}
-@media(max-width:760px){.blog-chat{inset-block-end:calc(75px + env(safe-area-inset-bottom,0px))}}
+@media(max-width:760px){.blog-chat{inset-inline-end:14px;inset-block-end:calc(72px + env(safe-area-inset-bottom,0px))}.blog-chat .blog-chat-panel{block-size:min(490px,calc(100dvh - 135px - env(safe-area-inset-bottom,0px)))}}
