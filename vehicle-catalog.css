@@ -143,8 +143,8 @@ body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table :is(td,th
  }
 }
 
-.reception-unit .unit-actions .btn { white-space: normal; }
-.reception-unit .unit-top .text-button { color: #fff; }
-.reception-unit .unit-top { display: flex; flex-wrap: wrap; gap: 12px; }
-.reception-unit .unit-title :is(h2,p) { color: #fff; }
+.unit-inspector .unit-actions .btn { white-space: normal; }
+.unit-inspector-top .text-button { color: #fff; }
+.unit-inspector-top { display: flex; flex-wrap: wrap; gap: 12px; }
+.unit-inspector .unit-title :is(h2,p) { color: #fff; }
 .reception-time { white-space: nowrap; }
