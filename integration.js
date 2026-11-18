@@ -273,8 +273,9 @@ async function savePlanQuote({id,plate,customer,lines,subtotal,iva,total,prepare
  if(data===currentData)data.requests=[...(data.requests||[]).filter(row=>row.id!==id),record];
  return quoteNumber;
 }
+let appointmentPlanVehicleId='';
 function maintenanceOptions(){
- return {clients:data.clients,vehicles:data.vehicles,savePlanQuote:session.role==='owner'?savePlanQuote:null,workshopLogo:safeImage(data.workshopImage),workshopName:session.workshop||(session.role==='admin'?'Administración de enjoy':'Taller de mecánica')};
+ return {clients:data.clients,vehicles:data.vehicles,initialVehicleId:appointmentPlanVehicleId,savePlanQuote:session.role==='owner'?savePlanQuote:null,workshopLogo:safeImage(data.workshopImage),workshopName:session.workshop||(session.role==='admin'?'Administración de enjoy':'Taller de mecánica')};
 }
 function maintenanceReport(){return head('Plan de mantenimiento','Elija el tipo de vehículo y el catálogo para generar la proforma.')+window.EnjoyVehicleCatalog.planView();}
 function options(){return '<option value="">Seleccione un vehículo</option>'+data.vehicles.map(v=>'<option value="'+esc(v.id)+'" '+(v.id===vehicleId?'selected':'')+'>'+esc(v.plate+' · '+v.brand+' '+v.model)+'</option>').join('');}
@@ -328,7 +329,7 @@ function appointmentFields(){
  extra.className='full';
  extra.dataset.appointmentExtras='';
  extra.innerHTML=`<label class="integration-check"><input type="checkbox" name="followsProforma" value="true"> Mantenimiento según proforma</label>
-  <label data-appointment-quote hidden>Proforma guardada (opcional)<select name="proformaId" class="form-select"></select><small data-appointment-quote-help hidden>Guarde la proforma desde Plan de mantenimiento para el cliente y vehículo de esta cita.</small></label>
+  <label data-appointment-quote hidden>Proforma guardada (opcional)<select name="proformaId" class="form-select"></select><small data-appointment-quote-help hidden>Todavía no hay una proforma guardada para este cliente y vehículo.</small><button type="button" class="btn secondary" data-prepare-appointment-quote hidden>Ir al plan de mantenimiento</button></label>
   <label>Fotos del estado del vehículo (máximo 4)<input class="form-control" type="file" data-appointment-photos accept="image/jpeg,image/png,image/webp" multiple></label>
   <p data-photo-feedback role="status"></p><div class="integration-photos" data-photo-preview></div>`;
  const products=catalog().filter(x=>x.kind==='product');
@@ -337,6 +338,12 @@ function appointmentFields(){
  const kind=form.elements.serviceType;
  const clientField=form.elements.clientId,vehicleField=form.elements.vehicleId;
  const follows=form.elements.followsProforma,quote=form.elements.proformaId;
+ const prepare=extra.querySelector('[data-prepare-appointment-quote]');
+ prepare.addEventListener('click',()=>{
+  appointmentPlanVehicleId=vehicleField.value;
+  $('#dialog').close();
+  go('maintenanceReport');
+ });
  const file=extra.querySelector('[data-appointment-photos]'),preview=extra.querySelector('[data-photo-preview]'),feedback=extra.querySelector('[data-photo-feedback]');
  let photos=[],photosChanged=false,processing=false;
  const originalService=record.catalogueServiceId||record.serviceId||'';
@@ -348,9 +355,11 @@ function appointmentFields(){
   quote.replaceChildren(new Option(options.length?'Sin vincular una proforma guardada':'Sin proformas guardadas para este vehículo',''),...options.map(r=>new Option(r.quoteNumber||('Proforma '+r.id.slice(0,8)),r.id)));
   quote.value=options.some(r=>r.id===chosen)?chosen:'';
   extra.querySelector('[data-appointment-quote-help]').hidden=options.length>0;
+  prepare.hidden=options.length>0||!vehicleField.value;
  }
  queueMicrotask(()=>syncQuotes(record.proformaId));
  follows.addEventListener('change',()=>syncQuotes(quote.value));
+ vehicleField.addEventListener('change',()=>syncQuotes(quote.value));
  form.addEventListener('input',event=>{if(event.target.matches('[data-appointment-client], [name="vehicleId"]'))syncQuotes(quote.value);});
  form.addEventListener('click',event=>{if(event.target.closest('[data-appointment-client-option]'))syncQuotes(quote.value);});
  function paintPhotos(){
@@ -444,7 +453,7 @@ render=function(){
   $('#contenido').insertAdjacentHTML('beforeend','<section class="card integration-pad" id="enjoy-storage-usage"><h2>Almacenamiento</h2><dl><dt>Repositorio de código</dt><dd data-code-size>Cargando…</dd><dt>Base de datos</dt><dd data-database-size>Cargando…</dd><dt>Proformas guardadas</dt><dd data-quote-storage>Cargando…</dd></dl></section>');
   loadStorageUsage();
  }
- if(requested==='maintenanceReport'){$('#contenido').innerHTML=maintenanceReport();window.EnjoyVehicleCatalog.wirePlan(maintenanceOptions());}
+ if(requested==='maintenanceReport'){$('#contenido').innerHTML=maintenanceReport();window.EnjoyVehicleCatalog.wirePlan(maintenanceOptions());appointmentPlanVehicleId='';}
  if(requested==='blog'){$('#contenido').innerHTML=blogPage();wireBlog();wireBlogChat();}
  if(requested==='proforma')$('#contenido').innerHTML=quote();
  if(requested==='dashboard'){$('#contenido').innerHTML=window.EnjoyVehicleCatalog.dashboard();window.EnjoyVehicleCatalog.wireDashboard();}

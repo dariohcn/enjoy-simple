@@ -515,10 +515,8 @@ function wirePlan(options){
    list.innerHTML=candidates.map((client,index)=>'<li><button type="button" data-plan-client="'+index+'">'+escapeHtml(client.name)+'</button></li>').join('');
    matches.hidden=!candidates.length;
   });
-  list.addEventListener('click',event=>{
-   const clicked=event.target.closest('[data-plan-client]');
-   if(!clicked)return;
-   selectedClient=candidates[Number(clicked.dataset.planClient)];
+  function chooseClient(client,vehicleId=''){
+   selectedClient=client;
    selectedVehicle=null;
    customer.value=selectedClient.name;
    matches.hidden=true;
@@ -526,15 +524,22 @@ function wirePlan(options){
    registered.replaceChildren(new Option(vehicles.length?'Seleccione un vehículo':'Sin vehículos registrados',''),
     ...vehicles.map(vehicle=>new Option([vehicle.plate,vehicle.brand,vehicle.model,vehicle.year].filter(Boolean).join(' · '),vehicle.id)));
    registered.disabled=!vehicles.length;
-   if(vehicles.length===1){
-    registered.value=vehicles[0].id;
-    selectedVehicle=vehicles[0];
+   selectedVehicle=vehicles.find(vehicle=>vehicle.id===vehicleId)||(vehicles.length===1?vehicles[0]:null);
+   if(selectedVehicle){
+    registered.value=selectedVehicle.id;
     selectCatalogForVehicle();
    }else if(brand.value){
     loadBrand();
    }
    (vehicles.length?registered:form.elements.vehicle_type).focus();
+  }
+  list.addEventListener('click',event=>{
+   const clicked=event.target.closest('[data-plan-client]');
+   if(clicked)chooseClient(candidates[Number(clicked.dataset.planClient)]);
   });
+  const initial=options.vehicles?.find(vehicle=>vehicle.id===options.initialVehicleId);
+  const owner=options.clients?.find(client=>client.id===initial?.clientId);
+  if(owner)chooseClient(owner,initial.id);
   registered.addEventListener('change',()=>{
    selectedVehicle=vehicles.find(vehicle=>vehicle.id===registered.value)||null;
    if(selectedVehicle)selectCatalogForVehicle();
