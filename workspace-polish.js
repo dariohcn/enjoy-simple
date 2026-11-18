@@ -46,8 +46,6 @@ newOrder=async function(appointmentId='',clientId=''){
 };
 const arrangeBeforeReception=arrangeEnjoyWorkspace;arrangeEnjoyWorkspace=function(){
  arrangeBeforeReception();if(session?.role!=='owner')return;
- if(['overview','calendar'].includes(view)){const heading=$('#contenido').querySelector('.operation-heading,.page-head,.agenda-top,.live-title');if(heading&&!heading.querySelector('[data-enjoy-receive]')){const button=document.createElement('button');button.type='button';button.className='btn secondary';button.dataset.enjoyReceive='';button.textContent='Recibir vehículo';heading.append(button);}}
- $('#contenido').querySelectorAll('[data-action="appointment"][data-id]').forEach(b=>{const a=data.appointments.find(a=>a.id===b.dataset.id);if(!a||!['scheduled','arrived'].includes(a.status)||b.parentElement.querySelector('[data-enjoy-receive]'))return;const linked=orderRows.find(o=>o.appointment_id===a.id);const button=document.createElement('button');button.className='text-button';button.type='button';button.dataset.enjoyReceive=a.id;button.textContent=linked?'Ver orden →':'Recibir vehículo →';b.insertAdjacentElement('afterend',button);});
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-enjoy-receive]');if(!b)return;const linked=orderRows.find(o=>o.appointment_id===b.dataset.enjoyReceive);if(linked){go('orders');openOrder(linked.id);}else newOrder(b.dataset.enjoyReceive||'');});
 const stageApiBeforeSync=api;api=async function(path,body){const result=await stageApiBeforeSync(path,body);if(path==='order-stage'&&session?.role==='owner')data=await stageApiBeforeSync('data');return result;};
