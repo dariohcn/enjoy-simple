@@ -276,7 +276,7 @@ function openVehicleForm(id,clientId=''){
  modal('Ficha del vehículo',select('Propietario','clientId',data.clients,record.clientId||clientId)+
   field('Placa','plate',record.plate)+field('Chasis / VIN','chassis',record.chassis||record.vin||'','text',false)+
   catalogField('Marca','brand',record.brand)+catalogField('Modelo','model',record.model)+
-  catalogField('Año','year',record.year,'inputmode="numeric" maxlength="4" pattern="[0-9]{4}"')+
+  catalogField('Año','year',record.year,'inputmode="numeric" maxlength="4" pattern="[0-9]{4}"').replace('</div>','<label data-vehicle-year-detail hidden>Año exacto<select class="form-select"></select></label></div>')+
   '<label>Kilometraje actual (opcional)<input class="form-control" name="km" type="number" min="0" step="1" inputmode="numeric" value="'+esc(record.km||'')+'" placeholder="Km del odómetro"></label>'+
   '<p class="full" data-vehicle-catalog-status role="status"></p>',async values=>{
    const {brand,model,year,km,...other}=values;
@@ -286,7 +286,7 @@ function openVehicleForm(id,clientId=''){
    await save('vehicles',{...other,id,brand:brand.trim(),model:model.trim(),year,km:km===''?record.km??0:Number(km)});
    if(clientId)return ()=>openClientForm(clientId);
   });
- window.EnjoyVehicleCatalog?.wireVehicleFields($('#form'),data.vehicles);
+ window.EnjoyVehicleCatalog?.wireVehicleFields($('#form'));
 }
 
 function register(){

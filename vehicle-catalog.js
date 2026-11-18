@@ -328,86 +328,106 @@ function catalogRequest(action,payload={}){
 function readVehicleCatalog({vehicle_type,region,brand}){
  return catalogRequest('vehicle-catalog-read',{vehicle_type,region,brand});
 }
-function wireVehicleFields(form,vehicles){
+function wireVehicleFields(form){
  const {brand,model,year}=form.elements;
  const status=form.querySelector('[data-vehicle-catalog-status]');
- const key=planLookupKey;
- let index,rows=[],activeBrand='',sequence=0;
+ const yearDetail=form.querySelector('[data-vehicle-year-detail]');
+ const exactYear=yearDetail.querySelector('select');
  const custom='__vehicle_manual__';
  const controls=Object.fromEntries([brand,model,year].map(input=>[input.name,form.querySelector('[data-vehicle-select="'+input.name+'"]')]));
- function options(input,values,descending=false){
-  const control=controls[input.name],manual=control.value===custom;
-  const distinct=new Map();
-  for(const value of [...values,input.value]){
-   const name=String(value??'').trim(),normalized=key(name);
-   if(normalized&&!distinct.has(normalized))distinct.set(normalized,name);
-  }
-  const sorted=[...distinct.values()].sort((a,b)=>(descending?-1:1)*a.localeCompare(b,'es',{numeric:true}));
-  const labels={brand:'Seleccione una marca',model:brand.value?'Seleccione un modelo':'Seleccione la marca primero',year:model.value?'Seleccione el año':'Seleccione el modelo primero'};
-  control.replaceChildren(new Option(labels[input.name],''),...sorted.map(value=>new Option(value,value)),new Option('Ingresar manualmente…',custom));
-  control.disabled=(input===model&&!brand.value)||(input===year&&!model.value);
-  control.value=manual&&!control.disabled?custom:distinct.get(key(input.value))||'';
+ const labels={brand:'Seleccione una marca',model:'Seleccione un modelo',year:'Seleccione el año'};
+ let index,rows=[],activeBrand='',sequence=0,loading=false,yearRange='';
+ const yearsFor=value=>window.EnjoyMaintenance.yearsForLabel(value).filter(y=>/^\d{4}$/.test(y));
+ function options(input,values,blocked=false){
+  const control=controls[input.name];
+  const names=[...new Set(values.map(value=>String(value??'').trim()).filter(Boolean))];
+  const current=input===year&&yearRange?yearRange:input.value;
+  if(current&&!names.includes(current))names.push(current);
+  const manual=control.value===custom;
+  const canEnter=!blocked&&values.length===0;
+  names.sort((a,b)=>input===year?b.localeCompare(a,'es',{numeric:true}):a.localeCompare(b,'es',{numeric:true}));
+  control.replaceChildren(new Option(labels[input.name],''),...names.map(value=>new Option(value,value)));
+  if(canEnter)control.add(new Option('Ingresar manualmente…',custom));
+  control.value=manual&&canEnter?custom:current;
+  control.disabled=blocked;
   control.hidden=false;
-  control.required=!control.disabled;
+  control.required=!blocked;
   input.type=control.value===custom?'text':'hidden';
  }
  function refreshFields(){
-  const saved=vehicles.filter(vehicle=>key(vehicle.brand)===key(brand.value));
-  options(model,[...rows.map(row=>row.modelo),...saved.map(vehicle=>vehicle.model)]);
-  const matching=rows.filter(row=>key(row.modelo)===key(model.value));
-  const years=matching.flatMap(row=>window.EnjoyMaintenance.yearsForLabel(String(row.anio_etiqueta||row.anio||'')));
-  options(year,[...years,...saved.filter(vehicle=>key(vehicle.model)===key(model.value)).map(vehicle=>vehicle.year)]
-   .filter(value=>/^\d{4}$/.test(String(value))),true);
+  const models=rows.map(row=>row.modelo).filter(Boolean);
+  options(model,models,!brand.value||loading||!index);
+  const matching=rows.filter(row=>row.modelo===model.value);
+  const years=matching.map(row=>String(row.anio_etiqueta||row.anio||'').trim()).filter(Boolean);
+  options(year,years,!model.value||loading||!index);
+ }
+ function clearYear(){
+  yearRange='';year.value='';controls.year.value='';
+  yearDetail.hidden=true;exactYear.disabled=true;exactYear.required=false;
  }
  async function loadModels(){
-  const name=key(brand.value);
-  if(name===activeBrand)return;
-  activeBrand=name;
+  if(!index||brand.value===activeBrand)return;
+  activeBrand=brand.value;
   const token=++sequence;
-  rows=[];refreshFields();
-  const entries=(index?.imports||[]).filter(entry=>key(entry.brand)===name);
-  if(!entries.length){status.textContent='';return;}
-  status.textContent='Cargando modelos y años…';
+  const entries=(index.imports||[]).filter(entry=>entry.brand===brand.value);
+  rows=[];loading=entries.length>0;refreshFields();
+  status.textContent=loading?'Cargando modelos y años…':'';
+  if(!loading)return;
   const results=await Promise.allSettled(entries.map(readVehicleCatalog));
   if(token!==sequence||!form.isConnected)return;
   rows=results.flatMap(result=>result.status==='fulfilled'?result.value:[]);
+  loading=false;
   refreshFields();
-  status.textContent=results.some(result=>result.status==='rejected')?'Algunas opciones del catálogo no se pudieron cargar. Puede ingresar los datos del vehículo.':'';
+  status.textContent=results.some(result=>result.status==='rejected')?'Algunas opciones del catálogo no se pudieron cargar.':'';
   if(!rows.length&&results.every(result=>result.status==='rejected'))activeBrand='';
  }
- options(brand,vehicles.map(vehicle=>vehicle.brand));
- function setValue(input,value){
-  input.value=value;
-  if(value==='')controls[input.name].value='';
- }
+ exactYear.disabled=true;
+ exactYear.addEventListener('change',()=>{year.value=exactYear.value;});
  for(const input of [brand,model,year]){
   const control=controls[input.name];
   control.addEventListener('change',()=>{
-   if(control.value===custom){input.type='text';input.select();return;}
-   const changed=key(input.value)!==key(control.value);
+   const selected=control.value;
+   if(input===year)clearYear();
+   if(selected===custom){
+    control.value=custom;
+    input.type='text';input.focus();return;
+   }
    input.type='hidden';
-   input.value=control.value;
-   if(changed&&input===brand)setValue(model,'');
-   if(changed&&input!==year)setValue(year,'');
-   if(input===brand&&index)loadModels();
+   input.value=selected;
+   if(input===year){
+    const years=yearsFor(selected);
+    if(selected&&!/^\d{4}$/.test(selected)){
+     yearRange=selected;
+     year.value='';
+     if(years.length){
+      exactYear.replaceChildren(new Option('Seleccione el año exacto',''),...years.map(value=>new Option(value,value)));
+      yearDetail.hidden=false;exactYear.disabled=false;exactYear.required=true;
+      exactYear.focus();
+     }else{
+      year.type='text';year.focus();
+     }
+    }
+    control.value=selected;
+    return;
+   }
+   if(input===brand){model.value='';controls.model.value='';}
+   clearYear();
+   if(input===brand)loadModels();
    refreshFields();
   });
  }
- brand.addEventListener('input',()=>{
-  setValue(model,'');setValue(year,'');
-  if(index)loadModels();
-  refreshFields();
- });
- model.addEventListener('input',()=>{setValue(year,'');refreshFields();});
+ brand.addEventListener('input',()=>{model.value='';controls.model.value='';clearYear();loadModels();refreshFields();});
+ model.addEventListener('input',()=>{clearYear();refreshFields();});
+ options(brand,[],true);
  refreshFields();
  status.textContent='Consultando marcas…';
  catalogRequest('vehicle-catalog-index').then(result=>{
   if(!form.isConnected)return;
   index=result;
-  options(brand,[...(index.brands||[]).map(entry=>entry.name),...(index.imports||[]).map(entry=>entry.brand),...vehicles.map(vehicle=>vehicle.brand)]);
+  options(brand,[...(index.brands||[]).map(entry=>entry.name),...(index.imports||[]).map(entry=>entry.brand)].filter(Boolean));
   status.textContent='';
-  loadModels();
- }).catch(()=>{if(form.isConnected)status.textContent='No se pudieron consultar las marcas. Puede ingresar los datos del vehículo.';});
+  loadModels();refreshFields();
+ }).catch(()=>{if(form.isConnected)status.textContent='No se pudieron consultar las marcas. Vuelva a abrir la ficha para reintentar.';});
 }
 function planView(){
  return '<section id="vehicle-plan-scope" class="card integration-pad"><form class="fields">'+(session?.role==='owner'?'<label>Cliente<input class="form-control" name="customer" type="search" autocomplete="off" placeholder="Nombre o iniciales"></label><label>Vehículo registrado<select class="form-select" name="registered_vehicle" disabled><option value="">Seleccione un cliente</option></select></label><div class="full nm-client-matches" data-plan-client-matches hidden><ul aria-label="Clientes que coinciden"></ul></div>':'')+scopeFields+
