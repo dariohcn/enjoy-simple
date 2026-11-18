@@ -265,7 +265,7 @@ async function savePlanQuote({id,plate,customer,lines,subtotal,iva,total,prepare
  const unit=plate&&data.vehicles.find(v=>normalizePlate(v.plate)===normalizePlate(plate)&&normalize(client(v.clientId)?.name)===normalize(customer));
  if(!unit)throw Error('Seleccione un cliente y un vehículo registrados para guardar la proforma.');
  const quoteNumber='PRO-'+id.slice(0,8).toUpperCase();
- await api('save',{collection:'requests',record:{id,kind:'proforma',status:'draft',serviceType:'Mantenimiento preventivo',
+ await api('save',{collection:'requests',record:{id,kind:'proforma',quoteSource:'maintenance-plan',status:'draft',serviceType:'Mantenimiento preventivo',
   clientId:unit.clientId,vehicleId:unit.id,services:[],quoteNumber,quoteLines:lines,quoteSubtotal:subtotal,
   quoteDate:isoToday(),quoteSavedAt:new Date().toISOString(),quoteIva:iva,quoteTotal:total,quotePrepared:prepared}});
  data=await api('data');
@@ -345,7 +345,7 @@ function appointmentFields(){
   quote.closest('label').hidden=!follows.checked;
   quote.disabled=!follows.checked;
   const options=activeQuotes().filter(r=>r.clientId===clientField.value&&r.vehicleId===vehicleField.value);
-  quote.replaceChildren(new Option('Sin vincular una proforma guardada',''),...options.map(r=>new Option(r.quoteNumber||('Proforma '+r.id.slice(0,8)),r.id)));
+  quote.replaceChildren(new Option(options.length?'Sin vincular una proforma guardada':'Sin proformas guardadas para este vehículo',''),...options.map(r=>new Option(r.quoteNumber||('Proforma '+r.id.slice(0,8)),r.id)));
   quote.value=options.some(r=>r.id===chosen)?chosen:'';
  }
  queueMicrotask(()=>syncQuotes(record.proformaId));
@@ -489,7 +489,7 @@ document.addEventListener('click',async event=>{
  if(b.hasAttribute('data-iq-remove')){rememberQuote();quoteLines.splice(Number(b.dataset.iqRemove),1);saved=false;return render();}
  if(b.hasAttribute('data-iq-photo')){rememberQuote();URL.revokeObjectURL(quotePhotos.splice(Number(b.dataset.iqPhoto),1)[0].url);return render();}
  if(b.hasAttribute('data-iq-print'))return printQuote();
- if(b.hasAttribute('data-iq-save')){rememberQuote();const v=vehicle(vehicleId);if(!v||!quoteLines.length)throw Error('Seleccione un vehículo y agregue al menos una partida.');b.disabled=true;quoteId=quoteId||crypto.randomUUID();await api('save',{collection:'requests',record:{id:quoteId,kind:'proforma',clientId:v.clientId,vehicleId:v.id,status:'draft',serviceType:quoteLines.find(x=>x.kind==='service')?.serviceType||'Inspección',services:quoteLines.filter(x=>x.kind==='service').map(x=>x.id),quoteNumber:quoteNo,conditions,quoteLines,quoteSubtotal:sum(quoteLines),quoteDate:isoToday(),quoteSavedAt:new Date().toISOString(),quoteIva:activeQuotes().find(row=>row.id===quoteId)?.quoteIva,quotePrepared:activeQuotes().find(row=>row.id===quoteId)?.quotePrepared}});saved=true;await refresh();toast('Proforma guardada en el sistema.');}
+ if(b.hasAttribute('data-iq-save')){rememberQuote();const v=vehicle(vehicleId);if(!v||!quoteLines.length)throw Error('Seleccione un vehículo y agregue al menos una partida.');b.disabled=true;quoteId=quoteId||crypto.randomUUID();await api('save',{collection:'requests',record:{id:quoteId,kind:'proforma',clientId:v.clientId,vehicleId:v.id,status:'draft',serviceType:quoteLines.find(x=>x.kind==='service')?.serviceType||'Inspección',services:quoteLines.filter(x=>x.kind==='service').map(x=>x.id),quoteNumber:quoteNo,conditions,quoteLines,quoteSubtotal:sum(quoteLines),quoteDate:isoToday(),quoteSavedAt:new Date().toISOString(),quoteSource:activeQuotes().find(row=>row.id===quoteId)?.quoteSource,quoteIva:activeQuotes().find(row=>row.id===quoteId)?.quoteIva,quotePrepared:activeQuotes().find(row=>row.id===quoteId)?.quotePrepared}});saved=true;await refresh();toast('Proforma guardada en el sistema.');}
  }catch(error){toast(error.message);}finally{b.disabled=false;}
 });
 document.addEventListener('input',event=>{
