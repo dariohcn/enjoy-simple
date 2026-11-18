@@ -140,3 +140,8 @@
 .nm-client-matches ul{list-style:none;margin:0;padding:4px;max-height:190px;overflow:auto;border:1px solid #d6e2ec;border-radius:8px;background:#fff}
 .nm-client-matches button{display:block;width:100%;border:0;border-radius:5px;padding:9px 10px;background:transparent;color:#173c56;text-align:left;font:inherit;cursor:pointer}
 .nm-client-matches button:hover,.nm-client-matches button:focus-visible{background:#eaf3fb}
+
+.nm-issue-date{font-weight:600}
+.nm-form-header .nm-plate-cell,.nm-print-header .nm-plate-cell{width:23%}
+.nm-form-header .nm-plate-cell #nm-plate{max-width:13rem}
+@media screen and (max-width:600px){.nm-inline-proforma .nm-form-header .nm-party-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,0.65fr)}.nm-inline-proforma .nm-form-header .nm-party-row>*{width:auto;min-width:0}.nm-party-row>th:first-child{grid-area:1/1}.nm-party-row>th:nth-child(3){grid-area:1/2}}

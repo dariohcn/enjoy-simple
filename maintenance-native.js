@@ -226,6 +226,10 @@ function mountProforma(){
  dialog.dataset.editing='false';
  dialog.setAttribute('aria-label','Datos de la proforma');
  const vehicleLabel=vehicleDescription();
+ const issueDate=new Date();
+ const issueDay=[issueDate.getFullYear(),issueDate.getMonth()+1,issueDate.getDate()]
+  .map((part,index)=>String(part).padStart(index===0?4:2,'0')).join('-');
+ const issueLabel=new Intl.DateTimeFormat('es-EC',{dateStyle:'long'}).format(issueDate);
  dialog.innerHTML=`<form>
   <div class="nm-plan-toolbar">
    <div><h2>Proforma</h2><p data-plan-mode hidden></p></div>
@@ -234,9 +238,10 @@ function mountProforma(){
   <table class="nm-form-header"><tbody>
    <tr><th colspan="4">${proformaBrandHeader()}</th></tr>
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
+   <tr><th scope="row">Fecha de emisión</th><td colspan="3"><time class="nm-issue-date" data-nm-issued datetime="${safe(issueDay)}">${safe(issueLabel)}</time></td></tr>
    <tr><th scope="row">Vehículo</th><td colspan="3" data-nm-vehicle-label>${safe(vehicleLabel)}</td></tr>
-   <tr><th scope="row"><label for="nm-customer">Cliente</label></th><td colspan="3"><input id="nm-customer" class="form-control" name="customer" autocomplete="off" required maxlength="120"><div class="nm-client-matches" data-client-matches hidden><ul data-client-choice aria-label="Clientes que coinciden"></ul></div></td></tr>
-   <tr><th scope="row"><label for="nm-plate">Placa</label></th><td colspan="3"><input id="nm-plate" class="form-control" name="plate" maxlength="20"><div class="nm-vehicle-matches" data-vehicle-matches hidden><label>Vehículo registrado<select class="form-select" data-vehicle-choice></select></label></div></td></tr>
+   <tr class="nm-party-row"><th scope="row"><label for="nm-customer">Cliente</label></th><td><input id="nm-customer" class="form-control" name="customer" autocomplete="off" required maxlength="120"><div class="nm-client-matches" data-client-matches hidden><ul data-client-choice aria-label="Clientes que coinciden"></ul></div></td>
+    <th scope="row"><label for="nm-plate">Placa</label></th><td class="nm-plate-cell"><input id="nm-plate" class="form-control" name="plate" maxlength="20"><div class="nm-vehicle-matches" data-vehicle-matches hidden><label>Vehículo registrado<select class="form-select" data-vehicle-choice></select></label></div></td></tr>
   </tbody></table>
   <p data-vehicle-status role="status" hidden></p>
   <div class="nm-quote-lines"></div>
@@ -347,12 +352,13 @@ function mountProforma(){
   const page=document.createElement('section');
   page.id='integration-print';
   page.className='nm-printed';
+  const issued=event.currentTarget.querySelector('[data-nm-issued]');
   page.innerHTML=`<table class="nm-print-header"><tbody>
    <tr><th colspan="4">${proformaBrandHeader()}</th></tr>
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
+   <tr><th>Fecha de emisión</th><td colspan="3"><time datetime="${safe(issued.dateTime)}">${safe(issued.textContent)}</time></td></tr>
    <tr><th>Vehículo</th><td colspan="3">${safe(vehicle)}</td></tr>
-   <tr><th>Cliente</th><td colspan="3">${safe(fields.customer)}</td></tr>
-   <tr><th>Placa</th><td colspan="3">${safe(fields.plate||'—')}</td></tr>
+   <tr class="nm-party-row"><th>Cliente</th><td>${safe(fields.customer)}</td><th>Placa</th><td class="nm-plate-cell">${safe(fields.plate||'—')}</td></tr>
   </tbody></table>
   ${section('REPUESTOS',rows.filter(r=>num(r[8])!==1),true)}
   ${section('MANO DE OBRA',rows.filter(r=>num(r[8])===1))}
