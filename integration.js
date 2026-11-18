@@ -238,14 +238,25 @@ function home(){const admin=session.role==='admin',logo=admin?'':safeImage(data.
 function loadStorageUsage(){
  const panel=$('#enjoy-storage-usage');
  if(!panel)return;
- const size=bytes=>new Intl.NumberFormat('es-EC',{maximumFractionDigits:2}).format(bytes/1048576)+' MiB';
+ const size=bytes=>{
+  const [divisor,unit]=bytes>=1e9?[1e9,'GB']:bytes>=1e6?[1e6,'MB']:bytes>=1000?[1000,'kB']:[1,'B'];
+  return new Intl.NumberFormat('es-EC',{maximumFractionDigits:2}).format(bytes/divisor)+' '+unit;
+ };
  api('storage-usage').then(result=>{
   if(!panel.isConnected)return;
-  panel.querySelector('[data-database-size]').textContent=size(result.databaseBytes);
+  const limit=500000000;
+  panel.querySelector('[data-database-size]').textContent=size(result.databaseBytes)+' utilizados de 0,50 GB · '+size(Math.max(0,limit-result.databaseBytes))+' disponibles';
+  const meter=panel.querySelector('progress');
+  meter.value=Math.min(limit,result.databaseBytes);
+  meter.hidden=false;
+  panel.querySelector('[data-file-size]').textContent=size(result.fileBytes)+' en enjoy · cuota compartida de 1 GB en la organización';
+  panel.querySelector('[data-account-usage]').innerHTML=result.accounts.length?table(['Cuenta','Taller','Uso estimado'],result.accounts.map(row=>
+   '<tr><td>'+esc(row.account)+'</td><td>'+esc(row.workshop||'—')+'</td><td>'+size(row.bytes)+'</td></tr>')):'<p>No hay cuentas registradas.</p>';
+  labelTables();
   panel.querySelector('[data-quote-storage]').textContent=result.quoteCount+' · '+size(result.quoteBytes);
  }).catch(()=>{
   panel.querySelector('[data-database-size]').textContent='No disponible';
-  panel.querySelector('[data-quote-storage]').textContent='No disponible';
+  for(const key of ['quote-storage','file-size','account-usage'])panel.querySelector('[data-'+key+']').textContent='No disponible';
  });
  fetch('https://api.github.com/repos/dariohcn/enjoy-simple',{credentials:'omit'}).then(response=>{
   if(!response.ok)throw Error();
@@ -351,8 +362,9 @@ function appointmentFields(){
  function syncQuotes(chosen=''){
   quote.closest('label').hidden=!follows.checked;
   quote.disabled=!follows.checked;
-  const options=activeQuotes().filter(r=>r.clientId===clientField.value&&r.vehicleId===vehicleField.value);
-  quote.replaceChildren(new Option(options.length?'Sin vincular una proforma guardada':'Sin proformas guardadas para este vehículo',''),...options.map(r=>new Option(r.quoteNumber||('Proforma '+r.id.slice(0,8)),r.id)));
+  const options=activeQuotes().filter(r=>r.clientId===clientField.value&&r.vehicleId===vehicleField.value)
+   .sort((a,b)=>String(b.quoteSavedAt||b.quoteDate||'').localeCompare(String(a.quoteSavedAt||a.quoteDate||'')));
+  quote.replaceChildren(new Option(options.length?'Sin vincular una proforma guardada':'Sin proformas guardadas para este vehículo',''),...options.map(r=>new Option([r.quoteNumber||('Proforma '+r.id.slice(0,8)),r.quoteDate,r.quoteSubtotal!=null?'Subtotal '+money(Number(r.quoteSubtotal)):''].filter(Boolean).join(' · '),r.id)));
   quote.value=options.some(r=>r.id===chosen)?chosen:'';
   extra.querySelector('[data-appointment-quote-help]').hidden=options.length>0;
   prepare.hidden=options.length>0||!vehicleField.value;
@@ -450,7 +462,13 @@ render=function(){
  baseRender();view=requested;if(!data)return;
  if(requested==='adminHome'||(requested==='overview'&&session.role==='owner'))$('#contenido').innerHTML=home();
  if(requested==='adminHome'){
-  $('#contenido').insertAdjacentHTML('beforeend','<section class="card integration-pad" id="enjoy-storage-usage"><h2>Almacenamiento</h2><dl><dt>Repositorio de código</dt><dd data-code-size>Cargando…</dd><dt>Base de datos</dt><dd data-database-size>Cargando…</dd><dt>Proformas guardadas</dt><dd data-quote-storage>Cargando…</dd></dl></section>');
+  $('#contenido').insertAdjacentHTML('beforeend','<section class="card integration-pad" id="enjoy-storage-usage"><h2>Almacenamiento</h2><div class="fields">'+
+   '<div><h3>Base de datos</h3><p data-database-size>Cargando…</p><progress max="500000000" aria-label="Uso de la base de datos" hidden></progress></div>'+
+   '<div><h3>Archivos</h3><p data-file-size>Cargando…</p></div>'+
+   '<div><h3>Repositorio de código</h3><p data-code-size>Cargando…</p></div>'+
+   '<div><h3>Proformas guardadas</h3><p data-quote-storage>Cargando…</p></div></div>'+
+   '<h3>Uso por cuenta</h3><p>Estimación de los datos atribuibles a cada cuenta. Si un taller tiene varias cuentas, sus datos compartidos aparecen una sola vez.</p>'+
+   '<div data-account-usage aria-live="polite">Cargando…</div></section>');
   loadStorageUsage();
  }
  if(requested==='maintenanceReport'){$('#contenido').innerHTML=maintenanceReport();window.EnjoyVehicleCatalog.wirePlan(maintenanceOptions());appointmentPlanVehicleId='';}
