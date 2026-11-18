@@ -142,3 +142,9 @@ body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table :is(td,th
   font-size: 16px;
  }
 }
+
+.reception-unit .unit-actions .btn { white-space: normal; }
+.reception-unit .unit-top .text-button { color: #fff; }
+.reception-unit .unit-top { display: flex; flex-wrap: wrap; gap: 12px; }
+.reception-unit .unit-title :is(h2,p) { color: #fff; }
+.reception-time { white-space: nowrap; }
