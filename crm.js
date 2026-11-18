@@ -57,11 +57,14 @@ function modal(title,fields,save,submit='Guardar'){ $('#dialog-content').innerHT
    }
    values.phone=number;
   }
-  const button=form.querySelector('button[type="submit"]');
-  button.disabled=true;
-  try{await save(values);$('#dialog').close();}
+  const buttons=form.querySelectorAll('button[type="submit"],[data-add-client-vehicle]');
+  if([...buttons].some(button=>button.disabled))return;
+  buttons.forEach(button=>{button.disabled=true;});
+  let next;
+  try{next=await save(values,event.submitter);$('#dialog').close();}
   catch(error){toast(error.message);}
-  finally{button.disabled=false;}
+  finally{buttons.forEach(button=>{button.disabled=false;});}
+  if(typeof next==='function')next();
  };
  $('#dialog').showModal();
 }
@@ -153,6 +156,43 @@ const registrationCities={
   "Zamora Chinchipe": ["El Pangui","Guayzimi","Palanda","Paquisha","28 de Mayo (Yacuambi)","Yantzaza","Zamora","Zumba","Zumbi"]
 };
 
+function openClientForm(id){
+ const record=client(id)||{};
+ const linked=id?data.vehicles.filter(vehicle=>vehicle.clientId===id):[];
+ const vehicleSection=id?`<section class="full">
+  <h3>Vehículos del cliente</h3>
+  ${linked.length?table(['Placa','Marca'],linked.map(vehicle=>`<tr><td><strong>${esc(vehicle.plate||'—')}</strong></td><td>${esc(vehicle.brand||'—')}</td></tr>`)):'<p>Este cliente todavía no tiene vehículos registrados.</p>'}
+  <button type="button" class="btn secondary" data-add-client-vehicle>Guardar y agregar vehículo</button>
+ </section>`:'';
+ modal(id?'Editar cliente':'Nuevo cliente',field('Nombre y apellido','name',record.name)+
+  field('WhatsApp / teléfono (código de país)','phone',record.phone,'tel',false)+
+  field('Correo electrónico','email',record.email,'email',false)+field('Notas','notes',record.notes,'text',false)+
+  optinField('whatsappOptIn',record.whatsappOptIn,'El cliente autoriza recordatorios por WhatsApp')+vehicleSection,
+  async (values,submitter)=>{
+   await save('clients',{...values,id,whatsappOptIn:values.whatsappOptIn==='on'});
+   if(id&&submitter?.hasAttribute('data-add-client-vehicle'))return ()=>openVehicleForm('',id);
+  });
+ const addButton=$('#form [data-add-client-vehicle]');
+ addButton?.addEventListener('click',()=>{
+  addButton.type='submit';
+  try{$('#form').requestSubmit(addButton);}
+  finally{addButton.type='button';}
+ });
+}
+
+function openVehicleForm(id,clientId=''){
+ if(!data.clients.length)return toast('Registre un cliente antes de ingresar un vehículo.');
+ const record=vehicle(id)||{};
+ modal('Ficha del vehículo',select('Propietario','clientId',data.clients,record.clientId||clientId)+
+  field('Placa','plate',record.plate)+field('Chasis / VIN','chassis',record.chassis||record.vin||'','text',false)+
+  field('Marca','brand',record.brand)+field('Modelo','model',record.model)+
+  field('Año','year',record.year||new Date().getFullYear(),'number')+
+  field('Kilometraje','km',record.km||0,'number'),async values=>{
+   await save('vehicles',{...values,id});
+   if(clientId)return ()=>openClientForm(clientId);
+  });
+}
+
 function register(){
  const provinces=Object.keys(registrationCities).map(name=>({id:name,name}));
  const cityPlaceholder='<option value="">Seleccione una ciudad</option>';
@@ -215,9 +255,9 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-acti
  };
  return;
 }if(a==='reminder-preview'){const job=data.reminders.find(j=>j.id===id),a=data.appointments.find(x=>x.id===job.appointment),v=vehicle(a.vehicleId),c=client(a.clientId);modal(data.whatsappConnected?'Contenido del recordatorio':'Recordatorio de prueba',`<div class="full reminder-preview"><span class="badge">WhatsApp · 1 hora antes</span><h3 style="margin-top:18px">${job.role==='owner'?'Propietario del taller':'Propietario del vehículo'}</h3><p class="preview-message">${esc(session.workshop)}: Recordatorio de cita para ${esc(c?.name)}. Vehículo: ${esc(v?.plate)}. Fecha: ${a.date.split('-').reverse().join('/')}. Hora: ${esc(a.time)}. Servicio: ${esc(a.reason)}.</p><p class="preview-disclaimer">${job.status==='accepted'?'WhatsApp aceptó el envío; no se confirma la entrega al teléfono.':job.status==='uncertain'?'No se pudo confirmar la aceptación del proveedor.':'Vista previa. No se ha enviado ningún mensaje.'}</p></div>`,()=>{});$('#form .dialog-footer').innerHTML=button('Cerrar','close','',true);return}if(a==='workshop-contact'){const r=data.workshopContact||{};return modal('WhatsApp del propietario',field('Número con código de país','phone',r.phone||'','tel',true)+optinField('whatsappOptIn',!!r.whatsapp_optin,'Autoriza recordatorios de citas a este número')+'<p class="full">Los recordatorios se programan una hora antes de la cita.</p>',async b=>{await api('workshop-contact',{phone:b.phone,whatsappOptIn:b.whatsappOptIn==='on'});await refresh();toast('Contacto WhatsApp guardado.')})}if(a==='workshop-detail'){const w=data.workshops.find(x=>x.id===id);modal('Información del taller',`<div class="full"><h2>${esc(w.name)}</h2><p>${esc(w.location)}</p><div class="profile" style="margin-top:20px"><div class="detail"><small>Propietario</small>${esc(w.owner)}</div><div class="detail"><small>Correo</small>${esc(w.email)}</div><div class="detail"><small>Clientes registrados</small>${w.counts.clients||0}</div><div class="detail"><small>Vehículos</small>${w.counts.vehicles||0}</div><div class="detail"><small>Citas</small>${w.counts.appointments||0}</div><div class="detail"><small>Edición de catálogo</small>${w.catalog?'Autorizada':'No autorizada'}</div></div><h3 style="margin-top:24px">Usuarios del taller</h3>${data.users.filter(u=>u.workshop===id).map(u=>`<div class="row"><div><strong>${esc(u.name)}</strong><p>${esc(u.email)}</p></div></div>`).join('')}</div>`,()=>{});$('#form .dialog-footer').innerHTML=button('Cerrar','close','',true);return}if(a==='close')return $('#dialog').close();if(a==='register')return register();if(a==='logout'){await api('logout',{});session=null;return loginPage()}if(a==='inspect'){selectedAppointment=id;render();if(innerWidth<=900)document.querySelector('.unit-inspector')?.scrollIntoView({block:'start'});return}if(a==='selectday'){selectedAppointment='';selectedDate=b.dataset.date;return render()}if(a==='calendar-mode'){calendarMode=id;return render()}if(a==='appointment-status'){const r=data.appointments.find(x=>x.id===id);return save('appointments',{...r,status:b.dataset.status})}if(a==='prev'||a==='next'||a==='today'){if(['week','day'].includes(calendarMode)&&a!=='today'){const d=new Date(selectedDate+'T12:00:00');d.setDate(d.getDate()+(a==='next'?1:-1)*(calendarMode==='week'?7:1));selectedDate=iso(d);month=d;}else{month=a==='today'?businessDate():new Date(month.getFullYear(),month.getMonth()+(a==='next'?1:-1),1);selectedDate=a==='today'?isoToday():iso(month);}return render()}if(a==='export'){return downloadAccountCsv(data);}if(a==='approve'||a==='reject'){await api('decision',{id,status:a==='approve'?'approved':'rejected'});await refresh();return toast(a==='approve'?'Taller autorizado.':'Solicitud rechazada.')}if(a==='done'){return save('plans',{...data.plans.find(p=>p.id===id),status:'done'})}
-if(a==='client'){const c=data.clients.find(c=>c.id===id)||{};return modal(id?'Editar cliente':'Nuevo cliente',field('Nombre y apellido','name',c.name)+field('WhatsApp / teléfono (código de país)','phone',c.phone,'tel',false)+field('Correo electrónico','email',c.email,'email',false)+field('Notas','notes',c.notes,'text',false)+optinField('whatsappOptIn',c.whatsappOptIn,'El cliente autoriza recordatorios por WhatsApp'),b=>save('clients',{...b,id,whatsappOptIn:b.whatsappOptIn==='on'}))}
+if(a==='client')return openClientForm(id);
 if(a==='profile'){const c=client(id),vs=data.vehicles.filter(v=>v.clientId===id);modal('Ficha del cliente',`<div class="full"><h2>${esc(c.name)}</h2><p>${esc(c.phone)} · ${esc(c.email)}</p><p style="margin-top:14px">${esc(c.notes||'Sin notas registradas.')}</p><h3 style="margin-top:23px">Vehículos</h3>${vs.map(v=>`<div class="row">${esc(v.plate)} · ${esc(v.brand)} ${esc(v.model)}</div>`).join('')||'<p>Sin vehículos registrados.</p>'}<h3 style="margin-top:20px">Citas registradas</h3>${data.appointments.filter(x=>x.clientId===id).map(x=>`<p>${date(x.date)} · ${esc(x.reason)}</p>`).join('')||'<p>Sin citas registradas.</p>'}</div>`,()=>{});$('#form .dialog-footer').innerHTML=button('Editar cliente','client',id)+button('Cerrar','close','',true);return}
-if(a==='vehicle'){if(!data.clients.length)return toast('Registre un cliente antes de ingresar un vehículo.');const v=vehicle(id)||{};return modal('Ficha del vehículo',select('Propietario','clientId',data.clients,v.clientId)+field('Placa','plate',v.plate)+field('Chasis / VIN','chassis',v.chassis||v.vin||'','text',false)+field('Marca','brand',v.brand)+field('Modelo','model',v.model)+field('Año','year',v.year||new Date().getFullYear(),'number')+field('Kilometraje','km',v.km||0,'number'),b=>save('vehicles',{...b,id}))}
+if(a==='vehicle')return openVehicleForm(id);
 if(a==='appointment'){if(!data.clients.length)return toast('Registre un cliente antes de agendar una cita.');const r=data.appointments.find(x=>x.id===id)||{};modal(b.hasAttribute('data-reschedule')?'Reprogramar cita':id?'Editar cita':'Nueva cita',select('Cliente','clientId',data.clients,r.clientId)+select('Vehículo','vehicleId',data.vehicles,r.vehicleId)+field('Fecha','date',r.date||b.dataset.date||isoToday(),'date')+field('Hora','time',r.time||'09:00','time')+field('Motivo de la visita','reason',r.reason)+field('Duración (minutos)','duration',r.duration||60,'number')+select('Estado de la cita','status',[{id:'scheduled',name:'Programada'},{id:'arrived',name:'En taller'},{id:'done',name:'Completada'},{id:'cancelled',name:'Cancelada'}],r.status||'scheduled'),async values=>{await save('appointments',{...values,id});if(id&&values.date!==r.date&&view==='calendar'){selectedDate=values.date;month=new Date(values.date+'T12:00:00');selectedAppointment=id;calendarMode='day';render();toast('Cita reprogramada para el '+date(values.date)+'.');}});if(b.hasAttribute('data-reschedule'))$('#form [name="date"]')?.focus();const cs=$('#form select[name=clientId]'),vs=$('#form select[name=vehicleId]');const sync=()=>{vs.innerHTML='<option value="">Seleccione un vehículo</option>'+data.vehicles.filter(v=>v.clientId===cs.value).map(v=>`<option value="${v.id}" ${r.vehicleId===v.id?'selected':''}>${esc(v.plate)}</option>`).join('')};cs.onchange=sync;sync();return}
 if(a==='plan'){if(!data.vehicles.length)return toast('Registre un vehículo antes de programar mantenimiento.');return modal('Programar mantenimiento',select('Vehículo','vehicleId',data.vehicles)+field('Servicio','service')+field('Fecha prevista','date','','date',false)+field('Kilometraje previsto','km','','number',false),b=>{if(!b.date&&!b.km)throw Error('Ingrese una fecha o un kilometraje.');return save('plans',{...b,status:'scheduled'})})}
 if(a==='service'){if(!data.catalogAllowed)return toast('La edición requiere autorización del administrador.');const s=data.services.find(x=>x.id===id)||{};return modal('Servicio del taller',field('Nombre','name',s.name)+field('Categoría','category',s.category)+field('Detalle de insumos','supplyDetail',s.supplyDetail||'','text',false)+field('Costo de insumos (USD)','supplies',s.supplies||0,'number')+field('Mano de obra (USD)','labor',s.labor||0,'number')+field('Descuento (%)','discount',s.discount||0,'number')+select('Icono asociado','icon',[{id:'⚙',name:'Mecánica'},{id:'◇',name:'Diagnóstico'},{id:'◷',name:'Mantenimiento'}],s.icon||'⚙'),b=>{if([b.supplies,b.labor,b.discount].some(n=>Number(n)<0)||Number(b.discount)>100)throw Error('Revise los costos y el descuento (0 a 100%).');return save('services',{...b,id})})}
