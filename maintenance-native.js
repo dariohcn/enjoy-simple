@@ -262,7 +262,7 @@ function mountProforma(){
   <p><strong>NOTA</strong><br>Las piezas y trabajos adicionales que se identifiquen durante el mantenimiento se cotizarán por separado.</p>
   <label for="nm-prepared">Elaborado por<input id="nm-prepared" class="form-control" name="prepared" maxlength="100"></label>
   <output class="nm-quote-status" aria-live="polite"></output>
-  <div class="nm-actions">${savePlanQuote?'<button class="btn secondary" name="saveQuote">Guardar proforma</button>':''}<button class="btn">Imprimir / guardar PDF</button></div>
+  <div class="nm-actions">${savePlanQuote?'<button class="btn secondary" name="saveQuote">Guardar proforma</button>':''}<button class="btn">${savePlanQuote?'Guardar e imprimir':'Imprimir / guardar PDF'}</button>${savePlanQuote?'<button class="btn secondary" name="printOnly">Solo imprimir PDF</button>':''}</div>
  </form>`;
  const editor=dialog.querySelector('.nm-quote-lines');
  const ivaInput=dialog.querySelector('#nm-iva');
@@ -337,7 +337,7 @@ function mountProforma(){
  editor.addEventListener('input',refreshTotal);
  ivaInput.addEventListener('input',refreshTotal);
  refreshTotal();
- let savedQuoteId;
+ let savedQuoteId,saving=false;
  dialog.querySelector('form').onsubmit=async event=>{
   event.preventDefault();
   const rows=readRows();
@@ -348,18 +348,19 @@ function mountProforma(){
   const iva=ivaInput.valueAsNumber;
   const summary=totals(rows,iva);
   const fields=Object.fromEntries(new FormData(event.currentTarget));
-  if(event.submitter?.name==='saveQuote'&&savePlanQuote){
-   const button=event.submitter,output=dialog.querySelector('output');
-   if(button.disabled)return;
-   button.disabled=true;
+  if(savePlanQuote&&event.submitter?.name!=='printOnly'){
+   const buttons=[...dialog.querySelectorAll('.nm-actions button')],output=dialog.querySelector('output');
+   if(saving)return;
+   saving=true;
+   buttons.forEach(button=>{button.disabled=true;});
    savedQuoteId=savedQuoteId||crypto.randomUUID();
    try{
     const number=await savePlanQuote({id:savedQuoteId,plate:fields.plate,customer:fields.customer,prepared:fields.prepared,iva,total:summary.total,subtotal:summary.subtotal,
      lines:rows.map(row=>({name:row[6],qty:row[7],kind:row[8]===1?'service':'product',price:row[9]}))});
     output.textContent=number+' guardada por 14 días.';
-   }catch(error){output.textContent=error.message;}
-   finally{button.disabled=false;}
-   return;
+   }catch(error){output.textContent=error.message;return;}
+   finally{saving=false;buttons.forEach(button=>{button.disabled=false;});}
+   if(event.submitter?.name==='saveQuote')return;
   }
   const vehicle=vehicleDescription();
   const lines=(items)=>items.map((r,index)=>{

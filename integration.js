@@ -262,13 +262,15 @@ function activeQuotes(){
 async function savePlanQuote({id,plate,customer,lines,subtotal,iva,total,prepared}){
  const normalize=value=>String(value||'').trim().toLocaleLowerCase('es');
  const normalizePlate=value=>normalize(value).replace(/[^a-z0-9]/g,'');
- const unit=plate&&data.vehicles.find(v=>normalizePlate(v.plate)===normalizePlate(plate)&&normalize(client(v.clientId)?.name)===normalize(customer));
+ const unit=normalizePlate(plate)&&data.vehicles.find(v=>normalizePlate(v.plate)===normalizePlate(plate)&&normalize(client(v.clientId)?.name)===normalize(customer));
  if(!unit)throw Error('Seleccione un cliente y un vehículo registrados para guardar la proforma.');
  const quoteNumber='PRO-'+id.slice(0,8).toUpperCase();
- await api('save',{collection:'requests',record:{id,kind:'proforma',quoteSource:'maintenance-plan',status:'draft',serviceType:'Mantenimiento preventivo',
+ const record={id,kind:'proforma',quoteSource:'maintenance-plan',status:'draft',serviceType:'Mantenimiento preventivo',
   clientId:unit.clientId,vehicleId:unit.id,services:[],quoteNumber,quoteLines:lines,quoteSubtotal:subtotal,
-  quoteDate:isoToday(),quoteSavedAt:new Date().toISOString(),quoteIva:iva,quoteTotal:total,quotePrepared:prepared}});
- data=await api('data');
+  quoteDate:isoToday(),quoteSavedAt:new Date().toISOString(),quoteIva:iva,quoteTotal:total,quotePrepared:prepared};
+ const currentData=data;
+ await api('save',{collection:'requests',record});
+ if(data===currentData)data.requests=[...(data.requests||[]).filter(row=>row.id!==id),record];
  return quoteNumber;
 }
 function maintenanceOptions(){
@@ -320,26 +322,24 @@ function parseCSV(input){let rows=[],row=[],cell='',quoted=false;const separator
 function printQuote(){rememberQuote();const v=vehicle(vehicleId);if(!v||!quoteLines.length)return toast('Seleccione un vehículo y al menos una partida.');$('#integration-print')?.remove();const record=activeQuotes().find(r=>r.id===quoteId);const page=document.createElement('section');page.id='integration-print';page.innerHTML='<h1>'+esc(session.workshop)+'</h1><h2>Proforma '+esc(quoteNo)+'</h2><p>'+esc(record?.quoteDate||isoToday())+' · '+esc(client(v.clientId)?.name)+' · '+esc(v.plate+' · '+v.brand+' '+v.model)+'</p>'+table(['Detalle','Cantidad','Precio','Importe'],quoteLines.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.qty+'</td><td>'+money(x.price)+'</td><td>'+money(lineCents(x)/100)+'</td></tr>'))+'<h3>Subtotal: '+money(sum(quoteLines))+'</h3><p>'+esc(conditions)+'</p>'+(record?.quoteIva!=null?'<p>IVA ('+esc(record.quoteIva)+' %): '+money(Math.round(sum(quoteLines)*record.quoteIva)/100)+'</p><h3>Total: '+money(sum(quoteLines)+Math.round(sum(quoteLines)*record.quoteIva)/100)+'</h3><p>Elaborado por '+esc(record.quotePrepared||'—')+'</p>':'<p>Proforma, no factura. Impuestos por confirmar.</p>')+quotePhotos.map((p,i)=>'<figure><img src="'+p.url+'" alt="Foto '+(i+1)+'"><figcaption>Fotografía '+(i+1)+'</figcaption></figure>').join('');document.body.append(page);window.print();}
 function appointmentFields(){
  const form=$('#form');
- if(!form?.querySelector('[name="time"]')||form.querySelector('#integration-service'))return;
+ if(!form?.querySelector('[name="time"]')||form.querySelector('[data-appointment-extras]'))return;
  const record=data.appointments.find(a=>a.id===editContext.id)||{};
- const services=catalog().filter(x=>x.kind==='service');
  const extra=document.createElement('div');
  extra.className='full';
- extra.innerHTML=`<label>Servicio del catálogo (opcional)<select id="integration-service" class="form-select"><option value="">Servicio no vinculado</option>${services.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+' · '+money(s.price)+'</option>').join('')}</select></label>
-  <label class="integration-check"><input type="checkbox" name="followsProforma" value="true"> Mantenimiento según proforma</label>
-  <label data-appointment-quote hidden>Proforma guardada (opcional)<select name="proformaId" class="form-select"></select></label>
+ extra.dataset.appointmentExtras='';
+ extra.innerHTML=`<label class="integration-check"><input type="checkbox" name="followsProforma" value="true"> Mantenimiento según proforma</label>
+  <label data-appointment-quote hidden>Proforma guardada (opcional)<select name="proformaId" class="form-select"></select><small data-appointment-quote-help hidden>Guarde la proforma desde Plan de mantenimiento para el cliente y vehículo de esta cita.</small></label>
   <label>Fotos del estado del vehículo (máximo 4)<input class="form-control" type="file" data-appointment-photos accept="image/jpeg,image/png,image/webp" multiple></label>
   <p data-photo-feedback role="status"></p><div class="integration-photos" data-photo-preview></div>`;
  const products=catalog().filter(x=>x.kind==='product');
  if(products.length)extra.insertAdjacentHTML('beforeend','<fieldset><legend>Productos asociados (opcional)</legend>'+products.map(p=>'<label class="integration-check"><input type="checkbox" data-iap="'+esc(p.id)+'"><span>'+esc(p.name)+'</span><input type="number" class="form-control" value="1" min="1" max="999" data-iap-qty="'+esc(p.id)+'" aria-label="Cantidad de '+esc(p.name)+'"></label>').join('')+'</fieldset>');
  form.querySelector('.fields').append(extra);
- const service=extra.querySelector('#integration-service'),kind=form.elements.serviceType;
+ const kind=form.elements.serviceType;
  const clientField=form.elements.clientId,vehicleField=form.elements.vehicleId;
  const follows=form.elements.followsProforma,quote=form.elements.proformaId;
  const file=extra.querySelector('[data-appointment-photos]'),preview=extra.querySelector('[data-photo-preview]'),feedback=extra.querySelector('[data-photo-feedback]');
  let photos=[],photosChanged=false,processing=false;
  const originalService=record.catalogueServiceId||record.serviceId||'';
- service.value=originalService;
  follows.checked=String(record.followsProforma)==='true';
  function syncQuotes(chosen=''){
   quote.closest('label').hidden=!follows.checked;
@@ -347,12 +347,12 @@ function appointmentFields(){
   const options=activeQuotes().filter(r=>r.clientId===clientField.value&&r.vehicleId===vehicleField.value);
   quote.replaceChildren(new Option(options.length?'Sin vincular una proforma guardada':'Sin proformas guardadas para este vehículo',''),...options.map(r=>new Option(r.quoteNumber||('Proforma '+r.id.slice(0,8)),r.id)));
   quote.value=options.some(r=>r.id===chosen)?chosen:'';
+  extra.querySelector('[data-appointment-quote-help]').hidden=options.length>0;
  }
  queueMicrotask(()=>syncQuotes(record.proformaId));
  follows.addEventListener('change',()=>syncQuotes(quote.value));
  form.addEventListener('input',event=>{if(event.target.matches('[data-appointment-client], [name="vehicleId"]'))syncQuotes(quote.value);});
  form.addEventListener('click',event=>{if(event.target.closest('[data-appointment-client-option]'))syncQuotes(quote.value);});
- service.addEventListener('change',()=>{const selected=services.find(s=>s.id===service.value);if(selected?.serviceType)kind.value=selected.serviceType;});
  function paintPhotos(){
   preview.innerHTML=photos.map((photo,index)=>'<figure><img src="'+esc(photo)+'" alt="Foto del vehículo '+(index+1)+'"><button type="button" class="btn secondary" data-remove-photo="'+index+'">Quitar</button></figure>').join('');
  }
@@ -404,7 +404,6 @@ function appointmentFields(){
  form.onsubmit=async event=>{
   event.preventDefault();
   if(processing){feedback.textContent='Espere a que se preparen las fotos.';return;}
-  const selected=services.find(s=>s.id===service.value);
   const associated=[];
   for(const input of productInputs.filter(el=>el.checked)){
    const product=products.find(p=>p.id===input.dataset.iap),qty=Number(quantities.get(input.dataset.iap).value);
@@ -417,11 +416,11 @@ function appointmentFields(){
    if(!input){input=document.createElement('input');input.type='hidden';input.name=name;extra.append(input);}
    input.value=value;
   };
-  hidden('serviceId',selected?.id||'');
-  hidden('catalogueServiceId',selected?.id);
-  hidden('catalogueServiceName',selected?.name);
+  hidden('serviceId',record.serviceId||'');
+  hidden('catalogueServiceId',record.catalogueServiceId);
+  hidden('catalogueServiceName',record.catalogueServiceName);
   hidden('associatedProducts',JSON.stringify(associated));
-  hidden('reason',selected?.name||(follows.checked?'Mantenimiento según proforma':record.serviceType===kind.value&&!originalService&&!record.followsProforma?record.reason||kind.value:kind.value));
+  hidden('reason',(follows.checked?'Mantenimiento según proforma':record.serviceType===kind.value&&!originalService&&!record.followsProforma?record.reason||kind.value:kind.value));
   hidden('vehiclePhotos',photosChanged?JSON.stringify(photos):undefined);
   return previous.call(form,event);
  };
