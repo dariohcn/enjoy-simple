@@ -95,11 +95,13 @@ function connectVehicleLookup(form){
  }));
  let selectedClient='',clientOptions=[],vehicleOptions=[];
 
- function showVehicles(options){
+ function showVehicles(options,chosenPlate=''){
   vehicleOptions=options;
   vehicleMatches.hidden=!options.length;
   vehicleChooser.replaceChildren(new Option('Seleccione el vehículo',''),...options.map((record,index)=>
    new Option([record.plate,record.model,record.customer].filter(Boolean).join(' · '),String(index))));
+  const index=options.findIndex(record=>record.plate===chosenPlate);
+  if(index>=0)vehicleChooser.value=String(index);
  }
 
  function applyVehicle(record){
@@ -107,7 +109,7 @@ function connectVehicleLookup(form){
   if(record.customer)customer.value=record.customer;
   selectedClient=record.clientId||'';
   clientMatches.hidden=true;
-  vehicleMatches.hidden=true;
+  showVehicles(vehicles.filter(vehicle=>vehicle.clientId===selectedClient),record.plate);
   status.textContent='Vehículo seleccionado: '+[record.model,record.plate].filter(Boolean).join(' · ')+'.';
   status.hidden=false;
  }
@@ -123,21 +125,23 @@ function connectVehicleLookup(form){
    terms.every(part=>client.words.some(word=>word.startsWith(part)))||
    (initials&&client.initials.startsWith(initials))).slice(0,30):[];
   clientMatches.hidden=!clientOptions.length;
-  clientChooser.replaceChildren(new Option('Seleccione el cliente',''),...clientOptions.map((client,index)=>
-   new Option(client.name,String(index))));
+  clientChooser.innerHTML=clientOptions.map((client,index)=>
+   '<li><button type="button" data-client-option="'+index+'">'+safe(client.name)+'</button></li>').join('');
  });
 
- clientChooser.addEventListener('change',()=>{
-  if(clientChooser.value==='')return;
-  const client=clientOptions[Number(clientChooser.value)];
+ clientChooser.addEventListener('click',event=>{
+  const option=event.target.closest('[data-client-option]');
+  if(!option)return;
+  const client=clientOptions[Number(option.dataset.clientOption)];
   selectedClient=client.id;
   customer.value=client.name;
   clientMatches.hidden=true;
   status.hidden=true;
   const options=vehicles.filter(record=>record.clientId===selectedClient);
-  if(options.length===1){applyVehicle(options[0]);return;}
+  if(options.length===1){applyVehicle(options[0]);plate.focus();return;}
   if(!options.some(record=>normalizePlate(record.plate)===normalizePlate(plate.value)))plate.value='';
   showVehicles(options);
+  (options.length?vehicleChooser:plate).focus();
  });
 
  function lookupPlate(exactOnly){
@@ -147,7 +151,7 @@ function connectVehicleLookup(form){
   const exact=options.filter(record=>normalizePlate(record.plate)===query);
   if(exactOnly&&query&&exact.length===1){applyVehicle(exact[0]);return;}
   status.hidden=true;
-  showVehicles(query.length>=2||selectedClient?options:[]);
+  showVehicles(selectedClient?vehicles.filter(record=>record.clientId===selectedClient):query.length>=2?options:[]);
  }
  plate.addEventListener('input',()=>lookupPlate(false));
  plate.addEventListener('change',()=>lookupPlate(true));
@@ -231,11 +235,9 @@ function mountProforma(){
    <tr><th colspan="4">${proformaBrandHeader()}</th></tr>
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
    <tr><th scope="row">Vehículo</th><td colspan="3" data-nm-vehicle-label>${safe(vehicleLabel)}</td></tr>
-   <tr><th scope="row"><label for="nm-customer">Cliente</label></th><td colspan="3"><input id="nm-customer" class="form-control" name="customer" required maxlength="120"></td></tr>
-   <tr><th scope="row"><label for="nm-plate">Placa</label></th><td colspan="3"><input id="nm-plate" class="form-control" name="plate" maxlength="20"></td></tr>
+   <tr><th scope="row"><label for="nm-customer">Cliente</label></th><td colspan="3"><input id="nm-customer" class="form-control" name="customer" autocomplete="off" required maxlength="120"><div class="nm-client-matches" data-client-matches hidden><ul data-client-choice aria-label="Clientes que coinciden"></ul></div></td></tr>
+   <tr><th scope="row"><label for="nm-plate">Placa</label></th><td colspan="3"><input id="nm-plate" class="form-control" name="plate" maxlength="20"><div class="nm-vehicle-matches" data-vehicle-matches hidden><label>Vehículo registrado<select class="form-select" data-vehicle-choice></select></label></div></td></tr>
   </tbody></table>
-  <div data-client-matches hidden><label>Elegir cliente registrado <select class="form-select" data-client-choice></select></label></div>
-  <div data-vehicle-matches hidden><label>Elegir vehículo registrado <select class="form-select" data-vehicle-choice></select></label></div>
   <p data-vehicle-status role="status" hidden></p>
   <div class="nm-quote-lines"></div>
   <div class="nm-quote-summary">
