@@ -16,7 +16,7 @@ function modelYear(code){
 function narrow(rows,key,index){return rows.filter(r=>text(r[index])===filters[key]);}
 function pick(rows,key,index){const vals=unique(rows,index);if(!vals.includes(filters[key])||(key==='code'&&filters[key]==='Sin versión indicada'))filters[key]=key==='code'?(vals.find(value=>value!=='Sin versión indicada')||vals[0]||''):key==='plan'?(vals[0]||''):'';return narrow(rows,key,index);}
 const otherYear='__otro__';
-let enteredYear='';
+let enteredYear='',planCustomer='',planPlate='';
 function selectedYear(){
  return filters.year===otherYear
   ? (/^\d{4}$/.test(enteredYear)&&Number(enteredYear)>=1900&&Number(enteredYear)<=2100?enteredYear:'')
@@ -240,8 +240,8 @@ function mountProforma(){
    <tr><th colspan="4">PROFORMA DE REPUESTOS Y MANO DE OBRA PARA MANTENIMIENTO</th></tr>
    <tr><th scope="row">Fecha de emisión</th><td colspan="3"><time class="nm-issue-date" data-nm-issued datetime="${safe(issueDay)}">${safe(issueLabel)}</time></td></tr>
    <tr><th scope="row">Vehículo</th><td colspan="3" data-nm-vehicle-label>${safe(vehicleLabel)}</td></tr>
-   <tr class="nm-party-row"><th scope="row"><label for="nm-customer">Cliente</label></th><td><input id="nm-customer" class="form-control" name="customer" autocomplete="off" required maxlength="120"><div class="nm-client-matches" data-client-matches hidden><ul data-client-choice aria-label="Clientes que coinciden"></ul></div></td>
-    <th scope="row"><label for="nm-plate">Placa</label></th><td class="nm-plate-cell"><input id="nm-plate" class="form-control" name="plate" maxlength="20"><div class="nm-vehicle-matches" data-vehicle-matches hidden><label>Vehículo registrado<select class="form-select" data-vehicle-choice></select></label></div></td></tr>
+   <tr class="nm-party-row"><th scope="row"><label for="nm-customer">Cliente</label></th><td><input id="nm-customer" class="form-control" name="customer" autocomplete="off" required maxlength="120" value="${safe(planCustomer)}"><div class="nm-client-matches" data-client-matches hidden><ul data-client-choice aria-label="Clientes que coinciden"></ul></div></td>
+    <th scope="row"><label for="nm-plate">Placa</label></th><td class="nm-plate-cell"><input id="nm-plate" class="form-control" name="plate" maxlength="20" value="${safe(planPlate)}"><div class="nm-vehicle-matches" data-vehicle-matches hidden><label>Vehículo registrado<select class="form-select" data-vehicle-choice></select></label></div></td></tr>
   </tbody></table>
   <p data-vehicle-status role="status" hidden></p>
   <div class="nm-quote-lines"></div>
@@ -399,7 +399,26 @@ async function load(){
  pending=(async()=>{const response=await fetch('assets/maintenance-reference.json.gz?v=1');if(!response.ok)throw Error('Respuesta '+response.status);if(!window.DecompressionStream)throw Error('Actualice su navegador para consultar el tarifario.');const stream=response.body.pipeThrough(new DecompressionStream('gzip'));const json=await new Response(stream).json();if(json.version!==2||!Array.isArray(json.plans)||!json.plans.length||!Array.isArray(json.items)||json.columns?.length!==16)throw Error('El archivo de planes no es válido.');referenceSource=json;referenceSource.rows=json.plans.map((p,i)=>[p[0],p[1],p[2],p[3],p[4],null,null,null,null,null,null,null,null,p[5],i,null]);if(!importedCatalog)source=referenceSource;})().catch(e=>{failure=e.message;}).finally(()=>{pending=null;paint();});
  return pending;
 }
-function render(options={}){enteredYear='';filters={year:'',brand:'',model:'',code:'',km:'',plan:'',type:'',search:''};vehicleBrandLogo=options.vehicleBrandLogo||'';importedCatalog=Array.isArray(options.catalogRows);catalogLabel=options.catalogLabel||'';source=importedCatalog?{rows:options.catalogRows}:referenceSource;workshopName=options.workshopName||'';workshopLogo=options.workshopLogo||'';registeredClients=options.clients||[];registeredVehicles=options.vehicles||[];setTimeout(()=>{load();mountProforma();},0);return '<section id="native-maintenance" class="native-maintenance">'+body()+'</section>';}
+function prefillPlanVehicle(vehicle){
+ if(!vehicle||!source?.rows?.length)return;
+ const key=value=>text(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const brandKey=key(vehicle.brand),modelKey=key(vehicle.model),year=text(vehicle.year);
+ if(!brandKey||!source.rows.some(row=>key(row[0])===brandKey))return;
+ if(/^\d{4}$/.test(year)&&Number(year)>=1900&&Number(year)<=2100){
+  if(selection().choices.year.includes(year))filters.year=year;
+  else{filters.year=otherYear;enteredYear=year;}
+ }
+ const brand=selection().choices.brand.find(value=>key(value)===brandKey);
+ if(!brand)return;
+ filters.brand=brand;
+ const models=selection().choices.model;
+ const exact=models.filter(value=>key(value)===modelKey);
+ const alternatives=modelKey?models.filter(value=>key(value).startsWith(modelKey)):[];
+ if(exact.length===1)filters.model=exact[0];
+ else if(!exact.length&&alternatives.length===1)filters.model=alternatives[0];
+}
+
+function render(options={}){enteredYear='';filters={year:'',brand:'',model:'',code:'',km:'',plan:'',type:'',search:''};vehicleBrandLogo=options.vehicleBrandLogo||'';importedCatalog=Array.isArray(options.catalogRows);catalogLabel=options.catalogLabel||'';source=importedCatalog?{rows:options.catalogRows}:referenceSource;workshopName=options.workshopName||'';workshopLogo=options.workshopLogo||'';registeredClients=options.clients||[];registeredVehicles=options.vehicles||[];planCustomer=options.selectedClient?.name||'';planPlate=options.selectedVehicle?.plate||'';prefillPlanVehicle(options.selectedVehicle);setTimeout(()=>{load();mountProforma();},0);return '<section id="native-maintenance" class="native-maintenance">'+body()+'</section>';}
 function resetLaterFilters(key){
  const order=['year','brand','model','code','km','plan'];
  const index=order.indexOf(key);

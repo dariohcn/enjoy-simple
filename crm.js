@@ -180,15 +180,69 @@ function openClientForm(id){
  });
 }
 
+function findClientsByName(records,query){
+ const normalize=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase().trim().replace(/\s+/g,' ');
+ const term=normalize(query);
+ if(!term)return [];
+ const initials=term.replace(/[^a-z]/g,'');
+ const terms=term.split(' ');
+ return records.filter(record=>{
+  const name=normalize(record.name),words=name.split(' ');
+  return name.includes(term)||terms.every(part=>words.some(word=>word.startsWith(part)))||
+   (initials&&words.map(word=>word[0]).join('').startsWith(initials));
+ }).slice(0,20);
+}
+
+function appointmentClientField(id){
+ return '<div><label>Cliente<input type="search" class="form-control" data-appointment-client autocomplete="off" placeholder="Escriba el nombre o las iniciales" value="'+
+  esc(client(id)?.name||'')+'" required></label><input type="hidden" name="clientId" value="'+esc(id||'')+'">'+
+  '<div class="nm-client-matches" data-appointment-matches hidden><ul aria-label="Clientes que coinciden"></ul></div></div>';
+}
+
+function wireAppointmentClient(form,vehicleId){
+ const name=form.querySelector('[data-appointment-client]');
+ const selected=form.elements.clientId;
+ const vehicleField=form.elements.vehicleId;
+ const matches=form.querySelector('[data-appointment-matches]');
+ const list=matches.querySelector('ul');
+ let candidates=[];
+ function showVehicles(current=''){
+  const vehicles=data.vehicles.filter(vehicle=>selected.value&&vehicle.clientId===selected.value);
+  vehicleField.replaceChildren(new Option(selected.value?(vehicles.length?'Seleccione un vehículo':'Sin vehículos registrados'):'Seleccione primero un cliente',''),
+   ...vehicles.map(vehicle=>new Option([vehicle.plate,vehicle.brand,vehicle.model].filter(Boolean).join(' · '),vehicle.id)));
+  vehicleField.value=vehicles.some(vehicle=>vehicle.id===current)?current:'';
+ }
+ name.addEventListener('input',()=>{
+  selected.value='';
+  showVehicles();
+  candidates=findClientsByName(data.clients,name.value);
+  list.innerHTML=candidates.map((record,index)=>'<li><button type="button" data-appointment-client-option="'+index+'">'+esc(record.name)+'</button></li>').join('');
+  matches.hidden=!candidates.length;
+  name.setCustomValidity(name.value.trim()?'Seleccione un cliente de los resultados.':'');
+ });
+ list.addEventListener('click',event=>{
+  const button=event.target.closest('[data-appointment-client-option]');
+  if(!button)return;
+  const record=candidates[Number(button.dataset.appointmentClientOption)];
+  selected.value=record.id;
+  name.value=record.name;
+  name.setCustomValidity('');
+  matches.hidden=true;
+  showVehicles();
+  vehicleField.focus();
+ });
+ showVehicles(vehicleId);
+}
+
 function openVehicleForm(id,clientId=''){
  if(!data.clients.length)return toast('Registre un cliente antes de ingresar un vehículo.');
  const record=vehicle(id)||{};
  modal('Ficha del vehículo',select('Propietario','clientId',data.clients,record.clientId||clientId)+
   field('Placa','plate',record.plate)+field('Chasis / VIN','chassis',record.chassis||record.vin||'','text',false)+
   field('Marca','brand',record.brand)+field('Modelo','model',record.model)+
-  field('Año','year',record.year||new Date().getFullYear(),'number')+
-  field('Kilometraje','km',record.km||0,'number'),async values=>{
-   await save('vehicles',{...values,id});
+  field('Año','year',record.year||new Date().getFullYear(),'number'),async values=>{
+   await save('vehicles',{...values,id,km:record.km??0});
    if(clientId)return ()=>openClientForm(clientId);
   });
 }
@@ -258,7 +312,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-acti
 if(a==='client')return openClientForm(id);
 if(a==='profile'){const c=client(id),vs=data.vehicles.filter(v=>v.clientId===id);modal('Ficha del cliente',`<div class="full"><h2>${esc(c.name)}</h2><p>${esc(c.phone)} · ${esc(c.email)}</p><p style="margin-top:14px">${esc(c.notes||'Sin notas registradas.')}</p><h3 style="margin-top:23px">Vehículos</h3>${vs.map(v=>`<div class="row">${esc(v.plate)} · ${esc(v.brand)} ${esc(v.model)}</div>`).join('')||'<p>Sin vehículos registrados.</p>'}<h3 style="margin-top:20px">Citas registradas</h3>${data.appointments.filter(x=>x.clientId===id).map(x=>`<p>${date(x.date)} · ${esc(x.reason)}</p>`).join('')||'<p>Sin citas registradas.</p>'}</div>`,()=>{});$('#form .dialog-footer').innerHTML=button('Editar cliente','client',id)+button('Cerrar','close','',true);return}
 if(a==='vehicle')return openVehicleForm(id);
-if(a==='appointment'){if(!data.clients.length)return toast('Registre un cliente antes de agendar una cita.');const r=data.appointments.find(x=>x.id===id)||{};modal(b.hasAttribute('data-reschedule')?'Reprogramar cita':id?'Editar cita':'Nueva cita',select('Cliente','clientId',data.clients,r.clientId)+select('Vehículo','vehicleId',data.vehicles,r.vehicleId)+field('Fecha','date',r.date||b.dataset.date||isoToday(),'date')+field('Hora','time',r.time||'09:00','time')+field('Motivo de la visita','reason',r.reason)+field('Duración (minutos)','duration',r.duration||60,'number')+select('Estado de la cita','status',[{id:'scheduled',name:'Programada'},{id:'arrived',name:'En taller'},{id:'done',name:'Completada'},{id:'cancelled',name:'Cancelada'}],r.status||'scheduled'),async values=>{await save('appointments',{...values,id});if(id&&values.date!==r.date&&view==='calendar'){selectedDate=values.date;month=new Date(values.date+'T12:00:00');selectedAppointment=id;calendarMode='day';render();toast('Cita reprogramada para el '+date(values.date)+'.');}});if(b.hasAttribute('data-reschedule'))$('#form [name="date"]')?.focus();const cs=$('#form select[name=clientId]'),vs=$('#form select[name=vehicleId]');const sync=()=>{vs.innerHTML='<option value="">Seleccione un vehículo</option>'+data.vehicles.filter(v=>v.clientId===cs.value).map(v=>`<option value="${v.id}" ${r.vehicleId===v.id?'selected':''}>${esc(v.plate)}</option>`).join('')};cs.onchange=sync;sync();return}
+if(a==='appointment'){if(!data.clients.length)return toast('Registre un cliente antes de agendar una cita.');const r=data.appointments.find(x=>x.id===id)||{};modal(b.hasAttribute('data-reschedule')?'Reprogramar cita':id?'Editar cita':'Nueva cita',appointmentClientField(r.clientId)+select('Vehículo','vehicleId',[])+field('Fecha','date',r.date||b.dataset.date||isoToday(),'date')+field('Hora','time',r.time||'09:00','time')+field('Motivo de la visita','reason',r.reason)+field('Duración (minutos)','duration',r.duration||60,'number')+select('Estado de la cita','status',[{id:'scheduled',name:'Programada'},{id:'arrived',name:'En taller'},{id:'done',name:'Completada'},{id:'cancelled',name:'Cancelada'}],r.status||'scheduled'),async values=>{await save('appointments',{...values,id});if(id&&values.date!==r.date&&view==='calendar'){selectedDate=values.date;month=new Date(values.date+'T12:00:00');selectedAppointment=id;calendarMode='day';render();toast('Cita reprogramada para el '+date(values.date)+'.');}});if(b.hasAttribute('data-reschedule'))$('#form [name="date"]')?.focus();wireAppointmentClient($('#form'),r.vehicleId);return}
 if(a==='plan'){if(!data.vehicles.length)return toast('Registre un vehículo antes de programar mantenimiento.');return modal('Programar mantenimiento',select('Vehículo','vehicleId',data.vehicles)+field('Servicio','service')+field('Fecha prevista','date','','date',false)+field('Kilometraje previsto','km','','number',false),b=>{if(!b.date&&!b.km)throw Error('Ingrese una fecha o un kilometraje.');return save('plans',{...b,status:'scheduled'})})}
 if(a==='service'){if(!data.catalogAllowed)return toast('La edición requiere autorización del administrador.');const s=data.services.find(x=>x.id===id)||{};return modal('Servicio del taller',field('Nombre','name',s.name)+field('Categoría','category',s.category)+field('Detalle de insumos','supplyDetail',s.supplyDetail||'','text',false)+field('Costo de insumos (USD)','supplies',s.supplies||0,'number')+field('Mano de obra (USD)','labor',s.labor||0,'number')+field('Descuento (%)','discount',s.discount||0,'number')+select('Icono asociado','icon',[{id:'⚙',name:'Mecánica'},{id:'◇',name:'Diagnóstico'},{id:'◷',name:'Mantenimiento'}],s.icon||'⚙'),b=>{if([b.supplies,b.labor,b.discount].some(n=>Number(n)<0)||Number(b.discount)>100)throw Error('Revise los costos y el descuento (0 a 100%).');return save('services',{...b,id})})}
 if(a==='request'){if(!data.vehicles.length||!data.services.length)return toast('Registre un vehículo y un servicio antes de crear la solicitud.');const r=data.requests.find(x=>x.id===id)||{};modal('Revisar solicitud de servicios',select('Cliente','clientId',data.clients,r.clientId)+select('Vehículo','vehicleId',data.vehicles,r.vehicleId)+`<div class="full"><p>Agregue o quite servicios antes de confirmar.</p></div>`+data.services.map(s=>`<label class="check full"><input type="checkbox" name="service-${s.id}" ${r.services?.includes(s.id)?'checked':''}>${esc(s.name)} · ${money(total(s))}</label>`).join('')+`<label>Estado<select name="status"><option value="draft">Guardar borrador</option><option value="confirmed">Confirmar solicitud</option></select></label>`,b=>{const services=data.services.filter(s=>b['service-'+s.id]).map(s=>s.id);if(!services.length)throw Error('Seleccione al menos un servicio.');return save('requests',{id,clientId:b.clientId,vehicleId:b.vehicleId,status:b.status,serviceType:b.serviceType,services})});const cs=$('#form select[name=clientId]'),vs=$('#form select[name=vehicleId]');cs.onchange=()=>{vs.innerHTML='<option value="">Seleccione un vehículo</option>'+data.vehicles.filter(v=>v.clientId===cs.value).map(v=>`<option value="${v.id}">${esc(v.plate)}</option>`).join('')};if(cs.value){cs.onchange();vs.value=r.vehicleId||'';}return}

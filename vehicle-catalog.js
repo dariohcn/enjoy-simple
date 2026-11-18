@@ -308,8 +308,12 @@ function wireAdmin(){
  });
  refreshIndex().catch(e=>{host.querySelector('[data-catalog-index]').textContent=e.message;});
 }
+const planLookupText=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+function planLookupKey(value){
+ return planLookupText(value).replace(/[^a-z0-9]/g,'');
+}
 function planView(){
- return '<section id="vehicle-plan-scope" class="card integration-pad"><form class="fields">'+scopeFields+
+ return '<section id="vehicle-plan-scope" class="card integration-pad"><form class="fields">'+(session?.role==='owner'?'<label>Cliente<input class="form-control" name="customer" type="search" autocomplete="off" placeholder="Nombre o iniciales"></label><label>Vehículo registrado<select class="form-select" name="registered_vehicle" disabled><option value="">Seleccione un cliente</option></select></label><div class="full nm-client-matches" data-plan-client-matches hidden><ul aria-label="Clientes que coinciden"></ul></div>':'')+scopeFields+
  '<label>Marca del catálogo<select name="brand" class="form-select" disabled><option value="">Seleccione el tipo</option></select></label></form>'+
  '<p data-scope-status role="status">Elija Liviano o Pesado para consultar un catálogo.</p>'+
  '</section><div id="vehicle-plan-content"></div>';
@@ -329,7 +333,8 @@ function wirePlan(options){
  if(!host||host.dataset.wired)return;
  host.dataset.wired='true';
  const form=host.querySelector('form'),status=host.querySelector('[data-scope-status]'),brand=form.elements.brand;
- let index,sequence=0;
+ let index,sequence=0,selectedClient=null,selectedVehicle=null;
+ const cachedCatalogs=new Map();
  function scopes(){
   const scope=currentScope(form);
   return (index?.imports||[]).filter(row=>row.vehicle_type===scope.vehicle_type&&row.region===scope.region);
@@ -343,7 +348,7 @@ function wirePlan(options){
  }
  form.elements.vehicle_type.addEventListener('change',updateScope);
  form.elements.region.addEventListener('change',updateScope);
- brand.addEventListener('change',async()=>{
+ async function loadBrand(){
   const token=++sequence;
   output.replaceChildren();
   const name=brand.value;
@@ -351,17 +356,81 @@ function wirePlan(options){
   const scope=currentScope(form);
   status.textContent='Cargando catálogo…';
   try{
-   const items=await api('vehicle-catalog-read',{...scope,brand:name});
+   const key=JSON.stringify([scope.vehicle_type,scope.region,name]);
+   const items=cachedCatalogs.get(key)||await api('vehicle-catalog-read',{...scope,brand:name});
+   cachedCatalogs.set(key,items);
    if(token!==sequence||!host.isConnected)return;
    if(!items.length){status.textContent='No se encontraron partidas.';return;}
    const logo=logoUrl(index.brands.find(b=>b.name===name)?.logo_url);
    const label=name+' · '+typeLabel[scope.vehicle_type]+' · '+zoneLabel[scope.region];
    status.textContent=label;
    if(logo){const image=document.createElement('img');image.src=logo;image.alt='Logo de '+name;image.width=68;image.height=40;image.style.objectFit='contain';status.prepend(image,document.createTextNode(' '));}
-   output.innerHTML=window.EnjoyMaintenance.render({...options,catalogRows:rowsForPlan(items,name),catalogLabel:label,vehicleBrandLogo:logo});
+   output.innerHTML=window.EnjoyMaintenance.render({...options,catalogRows:rowsForPlan(items,name),catalogLabel:label,vehicleBrandLogo:logo,selectedClient,selectedVehicle});
   }catch(e){if(token===sequence&&host.isConnected)status.textContent=e.message;}
- });
- api('vehicle-catalog-index').then(result=>{index=result;if(host.isConnected)updateScope();}).catch(e=>{if(host.isConnected)status.textContent=e.message;});
+ }
+ brand.addEventListener('change',loadBrand);
+ function selectCatalogForVehicle(){
+  if(!index||!selectedVehicle)return;
+  const key=planLookupKey(selectedVehicle.brand);
+  const available=key?index.imports.filter(entry=>planLookupKey(entry.brand)===key):[];
+  const current=currentScope(form);
+  const sameScope=available.filter(entry=>entry.vehicle_type===current.vehicle_type&&entry.region===current.region);
+  const match=sameScope.length===1?sameScope[0]:available.length===1?available[0]:null;
+  if(!match){
+   updateScope();
+   status.textContent=available.length?'Seleccione el tipo y, si corresponde, la región del catálogo para este vehículo.':'Seleccione un catálogo disponible para la marca del vehículo.';
+   return;
+  }
+  form.elements.vehicle_type.value=match.vehicle_type;
+  form.elements.region.value=match.region;
+  updateScope();
+  brand.value=match.brand;
+  loadBrand();
+ }
+ const customer=form.elements.customer;
+ if(customer){
+  const registered=form.elements.registered_vehicle;
+  const matches=form.querySelector('[data-plan-client-matches]');
+  const list=matches.querySelector('ul');
+  let candidates=[],vehicles=[];
+  form.addEventListener('submit',event=>event.preventDefault());
+  customer.addEventListener('input',()=>{
+   candidates=findClientsByName(options.clients||[],customer.value);
+   list.innerHTML=candidates.map((client,index)=>'<li><button type="button" data-plan-client="'+index+'">'+escapeHtml(client.name)+'</button></li>').join('');
+   matches.hidden=!candidates.length;
+  });
+  list.addEventListener('click',event=>{
+   const clicked=event.target.closest('[data-plan-client]');
+   if(!clicked)return;
+   selectedClient=candidates[Number(clicked.dataset.planClient)];
+   selectedVehicle=null;
+   customer.value=selectedClient.name;
+   matches.hidden=true;
+   vehicles=(options.vehicles||[]).filter(vehicle=>vehicle.clientId===selectedClient.id);
+   registered.replaceChildren(new Option(vehicles.length?'Seleccione un vehículo':'Sin vehículos registrados',''),
+    ...vehicles.map(vehicle=>new Option([vehicle.plate,vehicle.brand,vehicle.model,vehicle.year].filter(Boolean).join(' · '),vehicle.id)));
+   registered.disabled=!vehicles.length;
+   if(vehicles.length===1){
+    registered.value=vehicles[0].id;
+    selectedVehicle=vehicles[0];
+    selectCatalogForVehicle();
+   }else if(brand.value){
+    loadBrand();
+   }
+   (vehicles.length?registered:form.elements.vehicle_type).focus();
+  });
+  registered.addEventListener('change',()=>{
+   selectedVehicle=vehicles.find(vehicle=>vehicle.id===registered.value)||null;
+   if(selectedVehicle)selectCatalogForVehicle();
+   else if(brand.value)loadBrand();
+  });
+ }
+ api('vehicle-catalog-index').then(result=>{
+  index=result;
+  if(!host.isConnected)return;
+  if(selectedVehicle)selectCatalogForVehicle();
+  else updateScope();
+ }).catch(e=>{if(host.isConnected)status.textContent=e.message;});
 }
 
 let dashboardDays=7,dashboardState='',alarmed=new Map(),alarmIdentity='';
