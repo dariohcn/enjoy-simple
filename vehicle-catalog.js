@@ -572,10 +572,16 @@ function checkAlarms(){
   const key=a.id+'|'+a.date+'|'+a.time;
   if(alarmed.has(key))continue;
   alarmed.set(key,true);
-  toast('Alarma de cita: '+(vehicle(a.vehicleId)?.plate||'Vehículo')+' a las '+a.time+(minutes?' · en '+minutes+' min':' · ahora'));
+  toast('Tiene una cita en '+(session.workshop||'su taller')+' a las '+a.time+' · '+(vehicle(a.vehicleId)?.plate||'Vehículo')+(minutes?' · en '+minutes+' min':' · ahora'));
   break;
  }
- const banner=document.querySelector('[data-vehicle-alarms]');
+ let banner=document.querySelector('[data-vehicle-alarms]');
+ const root=document.querySelector('#contenido');
+ if(!banner&&root&&rows.length){
+  banner=document.createElement('section');
+  banner.dataset.vehicleAlarms='';
+  root.prepend(banner);
+ }
  if(banner)banner.innerHTML=alarmBanner();
 }
 function dashboard(){
@@ -640,7 +646,10 @@ function arrangeNetworkSummary(){
  report.querySelector('[data-network-detail-state]').addEventListener('change',event=>{networkReportState=event.target.value;update();});
  update();
 }
-if(typeof document!=='undefined')setInterval(checkAlarms,30000);
+if(typeof document!=='undefined'){
+ setInterval(checkAlarms,30000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAlarms();});
+}
 window.EnjoyVehicleCatalog={wireVehicleFields,adminView,wireAdmin,planView,wirePlan,dashboard,wireDashboard,arrangeNetworkSummary,alarmBanner,checkAlarms};
 if(typeof module!=='undefined')module.exports={csvRows,parseRows,parseMatrix,rowsForPlan,upcomingAlarms};
 })();
