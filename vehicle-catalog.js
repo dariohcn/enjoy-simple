@@ -409,7 +409,6 @@ function wireVehicleFields(form,vehicles){
   loadModels();
  }).catch(()=>{if(form.isConnected)status.textContent='No se pudieron consultar las marcas. Puede ingresar los datos del vehículo.';});
 }
-window.EnjoyVehicleCatalog={wireVehicleFields};
 function planView(){
  return '<section id="vehicle-plan-scope" class="card integration-pad"><form class="fields">'+(session?.role==='owner'?'<label>Cliente<input class="form-control" name="customer" type="search" autocomplete="off" placeholder="Nombre o iniciales"></label><label>Vehículo registrado<select class="form-select" name="registered_vehicle" disabled><option value="">Seleccione un cliente</option></select></label><div class="full nm-client-matches" data-plan-client-matches hidden><ul aria-label="Clientes que coinciden"></ul></div>':'')+scopeFields+
  '<label>Marca del catálogo<select name="brand" class="form-select" disabled><option value="">Seleccione el tipo</option></select></label></form>'+
@@ -615,6 +614,6 @@ function arrangeNetworkSummary(){
  update();
 }
 if(typeof document!=='undefined')setInterval(checkAlarms,30000);
-window.EnjoyVehicleCatalog={adminView,wireAdmin,planView,wirePlan,dashboard,wireDashboard,arrangeNetworkSummary,alarmBanner,checkAlarms};
+window.EnjoyVehicleCatalog={wireVehicleFields,adminView,wireAdmin,planView,wirePlan,dashboard,wireDashboard,arrangeNetworkSummary,alarmBanner,checkAlarms};
 if(typeof module!=='undefined')module.exports={csvRows,parseRows,parseMatrix,rowsForPlan,upcomingAlarms};
 })();
