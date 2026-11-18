@@ -333,15 +333,22 @@ function wireVehicleFields(form,vehicles){
  const status=form.querySelector('[data-vehicle-catalog-status]');
  const key=planLookupKey;
  let index,rows=[],activeBrand='',sequence=0;
+ const custom='__vehicle_manual__';
+ const controls=Object.fromEntries([brand,model,year].map(input=>[input.name,form.querySelector('[data-vehicle-select="'+input.name+'"]')]));
  function options(input,values,descending=false){
-  const list=form.querySelector('#'+input.getAttribute('list'));
+  const control=controls[input.name],manual=control.value===custom;
   const distinct=new Map();
-  for(const value of values){
+  for(const value of [...values,input.value]){
    const name=String(value??'').trim(),normalized=key(name);
    if(normalized&&!distinct.has(normalized))distinct.set(normalized,name);
   }
   const sorted=[...distinct.values()].sort((a,b)=>(descending?-1:1)*a.localeCompare(b,'es',{numeric:true}));
-  list.replaceChildren(...sorted.map(value=>new Option(value,value)));
+  const labels={brand:'Seleccione una marca',model:brand.value?'Seleccione un modelo':'Seleccione la marca primero',year:model.value?'Seleccione el año':'Seleccione el modelo primero'};
+  control.replaceChildren(new Option(labels[input.name],''),...sorted.map(value=>new Option(value,value)),new Option('Ingresar manualmente…',custom));
+  control.disabled=(input===model&&!brand.value)||(input===year&&!model.value);
+  control.value=manual&&!control.disabled?custom:distinct.get(key(input.value))||'';
+  control.hidden=false;
+  input.type=control.value===custom?'text':'hidden';
  }
  function refreshFields(){
   const saved=vehicles.filter(vehicle=>key(vehicle.brand)===key(brand.value));
@@ -368,10 +375,29 @@ function wireVehicleFields(form,vehicles){
   if(!rows.length&&results.every(result=>result.status==='rejected'))activeBrand='';
  }
  options(brand,vehicles.map(vehicle=>vehicle.brand));
- brand.addEventListener('input',()=>{if(index)loadModels();else refreshFields();});
- brand.addEventListener('change',()=>{if(index)loadModels();});
- model.addEventListener('input',refreshFields);
- model.addEventListener('change',refreshFields);
+ function setValue(input,value){
+  input.value=value;
+  if(value==='')controls[input.name].value='';
+ }
+ for(const input of [brand,model,year]){
+  const control=controls[input.name];
+  control.addEventListener('change',()=>{
+   if(control.value===custom){input.type='text';input.select();return;}
+   const changed=key(input.value)!==key(control.value);
+   input.type='hidden';
+   input.value=control.value;
+   if(changed&&input===brand)setValue(model,'');
+   if(changed&&input!==year)setValue(year,'');
+   if(input===brand&&index)loadModels();
+   refreshFields();
+  });
+ }
+ brand.addEventListener('input',()=>{
+  setValue(model,'');setValue(year,'');
+  if(index)loadModels();
+  refreshFields();
+ });
+ model.addEventListener('input',()=>{setValue(year,'');refreshFields();});
  refreshFields();
  status.textContent='Consultando marcas…';
  catalogRequest('vehicle-catalog-index').then(result=>{

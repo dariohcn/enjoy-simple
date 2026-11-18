@@ -159,18 +159,18 @@ const registrationCities={
 async function openClientHistory(id){
  const record=client(id);
  if(!record)return;
- if(!orderLoaded&&!orderBusy)await loadOrders();
+ if(!orderLoaded)await loadOrders();
  const vehicles=data.vehicles.filter(vehicle=>vehicle.clientId===id);
  const plates=new Set(vehicles.map(vehicle=>vehicle.plate));
  const visits=data.appointments.filter(visit=>visit.clientId===id).sort((a,b)=>b.date.localeCompare(a.date));
  const orders=orderRows.filter(order=>order.client_id===id||(!order.client_id&&order.client_name===record.name&&plates.has(order.plate)))
-  .sort((a,b)=>String(b.created).localeCompare(String(a.created)));
+  .sort(newestWorkOrderFirst);
  const visitStates={scheduled:'Programada',arrived:'En taller',done:'Completada',cancelled:'Cancelada'};
  const orderHistory=orders.map(order=>{
-  const work=(order.history||[]).filter(entry=>entry.stage==='delivery'&&entry.note).at(-1)?.note;
-  return '<tr><td>'+esc(new Date(order.created).toLocaleDateString('es-EC'))+'</td><td>'+esc(order.plate)+'</td><td>'+
+  const work=workPerformed(order);
+  return '<tr><td>'+esc(workOrderDate(order.created))+'</td><td>'+esc(order.plate)+'</td><td>'+
    esc(orderStages[order.stage]||'—')+'</td><td>'+esc(order.description||order.service_type||'—')+
-   (work?'<small>Trabajo realizado: '+esc(work)+'</small>':'')+'</td></tr>';
+   (work?'<small>Trabajo realizado: '+esc(work)+'</small>':'')+'</td><td><button type="button" class="text-button" data-history-order="'+esc(order.id)+'">Revisar orden</button></td></tr>';
  });
  const visitHistory=visits.map(visit=>'<tr><td>'+esc(date(visit.date))+'</td><td>'+esc(vehicle(visit.vehicleId)?.plate||'—')+'</td><td>'+
   esc(visitStates[visit.status]||'Programada')+'</td><td>'+esc(visit.reason||visit.catalogueServiceName||visit.serviceType||'—')+'</td></tr>');
@@ -178,10 +178,13 @@ async function openClientHistory(id){
   [record.phone,record.email].filter(Boolean).map(esc).join(' · ')+'</p>'+
   (record.notes?'<p>'+esc(record.notes)+'</p>':'')+'<h3>Vehículos</h3>'+
   (vehicles.length?'<ul>'+vehicles.map(vehicle=>'<li>'+esc([vehicle.plate,vehicle.brand,vehicle.model].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>':'<p>Sin vehículos registrados.</p>')+
-  '<h3>Órdenes de trabajo</h3>'+(orderHistory.length?table(['Recepción','Placa','Etapa','Trabajo'],orderHistory):'<p>'+
+  '<h3>Órdenes de trabajo</h3>'+(orderHistory.length?table(['Fecha de recepción','Placa','Etapa','Trabajo','Acción'],orderHistory):'<p>'+
    (orderLoaded?'Sin órdenes registradas para este cliente.':'Las órdenes todavía no están disponibles. Vuelva a abrir la ficha.')+'</p>')+
   '<h3>Citas registradas</h3>'+(visitHistory.length?table(['Fecha','Placa','Estado','Servicio'],visitHistory):'<p>Sin citas registradas.</p>')+'</section>',()=>{});
  $('#form .dialog-footer').innerHTML=button('Editar cliente','client',id)+button('Cerrar','close','',true);
+ for(const control of $('#form').querySelectorAll('[data-history-order]')){
+  control.onclick=()=>openHistoryOrder(control.dataset.historyOrder,()=>openClientHistory(id));
+ }
  labelTables();
 }
 
@@ -267,7 +270,9 @@ function wireAppointmentClient(form,vehicleId){
 function openVehicleForm(id,clientId=''){
  if(!data.clients.length)return toast('Registre un cliente antes de ingresar un vehículo.');
  const record=vehicle(id)||{};
- const catalogField=(label,name,value,attrs='')=>'<label>'+label+'<input class="form-control" name="'+name+'" value="'+esc(value??'')+'" list="vehicle-field-'+name+'" autocomplete="off" required '+attrs+'><datalist id="vehicle-field-'+name+'"></datalist></label>';
+ const catalogField=(label,name,value,attrs='')=>'<div><label for="vehicle-select-'+name+'">'+label+'</label>'+
+  '<select id="vehicle-select-'+name+'" class="form-select" data-vehicle-select="'+name+'" hidden></select>'+
+  '<input aria-label="'+label+'" class="form-control" name="'+name+'" value="'+esc(value??'')+'" autocomplete="off" required '+attrs+'></div>';
  modal('Ficha del vehículo',select('Propietario','clientId',data.clients,record.clientId||clientId)+
   field('Placa','plate',record.plate)+field('Chasis / VIN','chassis',record.chassis||record.vin||'','text',false)+
   catalogField('Marca','brand',record.brand)+catalogField('Modelo','model',record.model)+
@@ -275,8 +280,8 @@ function openVehicleForm(id,clientId=''){
   '<label>Kilometraje actual (opcional)<input class="form-control" name="km" type="number" min="0" step="1" inputmode="numeric" value="'+esc(record.km||'')+'" placeholder="Km del odómetro"></label>'+
   '<p class="full" data-vehicle-catalog-status role="status"></p>',async values=>{
    const {brand,model,year,km,...other}=values;
-   if(!brand.trim()||!model.trim())throw Error('Ingrese la marca y el modelo del vehículo.');
-   if(Number(year)<1900||Number(year)>2100)throw Error('Ingrese un año válido entre 1900 y 2100.');
+   if(!brand.trim()||!model.trim())throw Error('Seleccione o ingrese la marca y el modelo del vehículo.');
+   if(!/^\d{4}$/.test(year)||Number(year)<1900||Number(year)>2100)throw Error('Ingrese un año válido entre 1900 y 2100.');
    if(km!==''&&(!Number.isSafeInteger(Number(km))||Number(km)<0))throw Error('Ingrese el kilometraje actual en kilómetros enteros.');
    await save('vehicles',{...other,id,brand:brand.trim(),model:model.trim(),year,km:km===''?record.km??0:Number(km)});
    if(clientId)return ()=>openClientForm(clientId);
