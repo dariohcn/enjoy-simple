@@ -348,11 +348,13 @@ function wireVehicleFields(form){
   names.sort((a,b)=>input===year?b.localeCompare(a,'es',{numeric:true}):a.localeCompare(b,'es',{numeric:true}));
   control.replaceChildren(new Option(labels[input.name],''),...names.map(value=>new Option(value,value)));
   if(canEnter)control.add(new Option('Ingresar manualmente…',custom));
-  control.value=manual&&canEnter?custom:current;
+  const enterMissingYear=input===year&&canEnter&&!current;
+  control.value=canEnter&&(manual||enterMissingYear)?custom:current;
   control.disabled=blocked;
-  control.hidden=false;
-  control.required=!blocked;
+  control.hidden=enterMissingYear||input===year&&canEnter&&manual;
+  control.required=!blocked&&!control.hidden;
   input.type=control.value===custom?'text':'hidden';
+  if(input===year)input.placeholder='Ingrese el año del vehículo';
  }
  function refreshFields(){
   const models=rows.map(row=>row.modelo).filter(Boolean);
