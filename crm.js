@@ -211,7 +211,7 @@ function wireAppointmentClient(form,vehicleId){
   const vehicles=data.vehicles.filter(vehicle=>selected.value&&vehicle.clientId===selected.value);
   vehicleField.replaceChildren(new Option(selected.value?(vehicles.length?'Seleccione un vehículo':'Sin vehículos registrados'):'Seleccione primero un cliente',''),
    ...vehicles.map(vehicle=>new Option([vehicle.plate,vehicle.brand,vehicle.model].filter(Boolean).join(' · '),vehicle.id)));
-  vehicleField.value=vehicles.some(vehicle=>vehicle.id===current)?current:'';
+  vehicleField.value=vehicles.some(vehicle=>vehicle.id===current)?current:(vehicles.length===1?vehicles[0].id:'');
  }
  name.addEventListener('input',()=>{
   selected.value='';
