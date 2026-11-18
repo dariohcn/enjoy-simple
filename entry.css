@@ -259,3 +259,19 @@ body.logged-out #contenido #enjoy-entry{background:#eaf0f5;padding:0 clamp(20px,
  #enjoy-entry .entry-story-heading h1{font-size:23px!important;line-height:1.2!important;margin:0 0 12px!important;letter-spacing:-.5px!important}
  #enjoy-entry .entry-story-heading p{font-size:11px!important;max-width:205px!important}
 }
+
+/* Let the phone login page end at its footer, including in desktop-site mode. */
+html[data-enjoy-phone] body.logged-out:has(#enjoy-entry) :is(.shell,#contenido,#enjoy-entry) {
+ min-height: 0;
+}
+html[data-enjoy-phone] body.logged-out #contenido {
+ padding-block: 0;
+}
+@media (max-width: 600px) {
+ body.logged-out:has(#enjoy-entry) :is(.shell,#contenido,#enjoy-entry) {
+  min-height: 0;
+ }
+ body.logged-out #contenido:has(#enjoy-entry) {
+  padding-block: 0;
+ }
+}
