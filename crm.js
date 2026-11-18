@@ -274,19 +274,30 @@ function openVehicleForm(id,clientId=''){
   '<select id="vehicle-select-'+name+'" class="form-select" data-vehicle-select="'+name+'" hidden></select>'+
   '<input aria-label="'+label+'" class="form-control" name="'+name+'" value="'+esc(value??'')+'" autocomplete="off" required '+attrs+'></div>';
  modal('Ficha del vehículo',select('Propietario','clientId',data.clients,record.clientId||clientId)+
-  field('Placa','plate',record.plate)+field('Chasis / VIN','chassis',record.chassis||record.vin||'','text',false)+
+  field('Placa','plate',String(record.plate??'').toUpperCase())+field('Chasis / VIN','chassis',String(record.chassis||record.vin||'').toUpperCase(),'text',false)+
   catalogField('Marca','brand',record.brand)+catalogField('Modelo','model',record.model)+
   catalogField('Año','year',record.year,'inputmode="numeric" maxlength="4" pattern="[0-9]{4}"').replace('</div>','<label data-vehicle-year-detail hidden>Año exacto<select class="form-select"></select></label></div>')+
   '<label>Kilometraje actual (opcional)<input class="form-control" name="km" type="number" min="0" step="1" inputmode="numeric" value="'+esc(record.km||'')+'" placeholder="Km del odómetro"></label>'+
   '<p class="full" data-vehicle-catalog-status role="status"></p>',async values=>{
-   const {brand,model,year,km,...other}=values;
+   const {brand,model,year,km,plate,chassis,...other}=values;
    if(!brand.trim()||!model.trim())throw Error('Seleccione o ingrese la marca y el modelo del vehículo.');
    if(!/^\d{4}$/.test(year)||Number(year)<1900||Number(year)>2100)throw Error('Ingrese un año válido entre 1900 y 2100.');
    if(km!==''&&(!Number.isSafeInteger(Number(km))||Number(km)<0))throw Error('Ingrese el kilometraje actual en kilómetros enteros.');
-   await save('vehicles',{...other,id,brand:brand.trim(),model:model.trim(),year,km:km===''?record.km??0:Number(km)});
+   await save('vehicles',{...other,id,plate:plate.toUpperCase(),chassis:chassis.toUpperCase(),brand:brand.trim(),model:model.trim(),year,km:km===''?record.km??0:Number(km)});
    if(clientId)return ()=>openClientForm(clientId);
   });
- window.EnjoyVehicleCatalog?.wireVehicleFields($('#form'));
+ const form=$('#form');
+ for(const input of [form.elements.plate,form.elements.chassis]){
+  input.setAttribute('autocapitalize','characters');
+  input.addEventListener('input',()=>{
+   const upper=input.value.toUpperCase();
+   if(upper===input.value)return;
+   const start=input.selectionStart,end=input.selectionEnd;
+   input.value=upper;
+   input.setSelectionRange(start,end);
+  });
+ }
+ window.EnjoyVehicleCatalog?.wireVehicleFields(form);
 }
 
 function register(){
