@@ -348,6 +348,7 @@ function wireVehicleFields(form,vehicles){
   control.disabled=(input===model&&!brand.value)||(input===year&&!model.value);
   control.value=manual&&!control.disabled?custom:distinct.get(key(input.value))||'';
   control.hidden=false;
+  control.required=!control.disabled;
   input.type=control.value===custom?'text':'hidden';
  }
  function refreshFields(){
@@ -403,7 +404,7 @@ function wireVehicleFields(form,vehicles){
  catalogRequest('vehicle-catalog-index').then(result=>{
   if(!form.isConnected)return;
   index=result;
-  options(brand,[...index.brands.map(entry=>entry.name),...vehicles.map(vehicle=>vehicle.brand)]);
+  options(brand,[...(index.brands||[]).map(entry=>entry.name),...(index.imports||[]).map(entry=>entry.brand),...vehicles.map(vehicle=>vehicle.brand)]);
   status.textContent='';
   loadModels();
  }).catch(()=>{if(form.isConnected)status.textContent='No se pudieron consultar las marcas. Puede ingresar los datos del vehículo.';});

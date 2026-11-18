@@ -270,7 +270,7 @@ function wireAppointmentClient(form,vehicleId){
 function openVehicleForm(id,clientId=''){
  if(!data.clients.length)return toast('Registre un cliente antes de ingresar un vehículo.');
  const record=vehicle(id)||{};
- const catalogField=(label,name,value,attrs='')=>'<div><label for="vehicle-select-'+name+'">'+label+'</label>'+
+ const catalogField=(label,name,value,attrs='')=>'<div class="vehicle-catalog-field"><label for="vehicle-select-'+name+'">'+label+'</label>'+
   '<select id="vehicle-select-'+name+'" class="form-select" data-vehicle-select="'+name+'" hidden></select>'+
   '<input aria-label="'+label+'" class="form-control" name="'+name+'" value="'+esc(value??'')+'" autocomplete="off" required '+attrs+'></div>';
  modal('Ficha del vehículo',select('Propietario','clientId',data.clients,record.clientId||clientId)+

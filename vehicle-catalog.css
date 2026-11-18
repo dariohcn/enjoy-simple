@@ -106,3 +106,39 @@ body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table :is(td,th
 }
 
 .vehicle-network-detail .enjoy-taskboard{margin:12px 0}
+
+/* Vehicle registration shares the dialog grid and uses native dropdowns. */
+#dialog .vehicle-catalog-field {
+ min-inline-size: 0;
+}
+#dialog .vehicle-catalog-field > label {
+ display: block;
+ margin-block-end: .5rem;
+}
+#dialog .vehicle-catalog-field > select:not([hidden]) {
+ display: block;
+ inline-size: 100%;
+ max-inline-size: 100%;
+ min-block-size: 44px;
+ padding-inline-end: 2.25rem;
+ appearance: auto;
+ background-image: none;
+}
+#dialog .vehicle-catalog-field > select:disabled {
+ opacity: 1;
+}
+#dialog .vehicle-catalog-field > input[type="text"] {
+ margin-block-start: .5rem;
+}
+#dialog [data-vehicle-catalog-status]:empty {
+ display: none;
+}
+@media (max-width: 640px) {
+ #dialog .fields:has(.vehicle-catalog-field) {
+  grid-template-columns: minmax(0, 1fr);
+ }
+ #dialog .vehicle-catalog-field > select,
+ #dialog .vehicle-catalog-field > input {
+  font-size: 16px;
+ }
+}
