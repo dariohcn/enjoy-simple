@@ -2,6 +2,7 @@
 /* Native maintenance planner. Reference data is served by this GitHub Pages site. */
 (() => {
 'use strict';
+let savePlanQuote;
 let workshopName='', workshopLogo='', registeredClients=[], registeredVehicles=[];
 let source=null,referenceSource=null,importedCatalog=false,catalogLabel='',pending=null,failure='',filters={year:'',brand:'',model:'',code:'',km:'',plan:'',type:'',search:''};
 const text=x=>String(x??''),safe=x=>text(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -261,7 +262,7 @@ function mountProforma(){
   <p><strong>NOTA</strong><br>Las piezas y trabajos adicionales que se identifiquen durante el mantenimiento se cotizarán por separado.</p>
   <label for="nm-prepared">Elaborado por<input id="nm-prepared" class="form-control" name="prepared" maxlength="100"></label>
   <output class="nm-quote-status" aria-live="polite"></output>
-  <div class="nm-actions"><button class="btn">Imprimir / guardar PDF</button></div>
+  <div class="nm-actions">${savePlanQuote?'<button class="btn secondary" name="saveQuote">Guardar proforma</button>':''}<button class="btn">Imprimir / guardar PDF</button></div>
  </form>`;
  const editor=dialog.querySelector('.nm-quote-lines');
  const ivaInput=dialog.querySelector('#nm-iva');
@@ -336,6 +337,7 @@ function mountProforma(){
  editor.addEventListener('input',refreshTotal);
  ivaInput.addEventListener('input',refreshTotal);
  refreshTotal();
+ let savedQuoteId;
  dialog.querySelector('form').onsubmit=async event=>{
   event.preventDefault();
   const rows=readRows();
@@ -346,6 +348,19 @@ function mountProforma(){
   const iva=ivaInput.valueAsNumber;
   const summary=totals(rows,iva);
   const fields=Object.fromEntries(new FormData(event.currentTarget));
+  if(event.submitter?.name==='saveQuote'&&savePlanQuote){
+   const button=event.submitter,output=dialog.querySelector('output');
+   if(button.disabled)return;
+   button.disabled=true;
+   savedQuoteId=savedQuoteId||crypto.randomUUID();
+   try{
+    const number=await savePlanQuote({id:savedQuoteId,plate:fields.plate,customer:fields.customer,prepared:fields.prepared,iva,total:summary.total,subtotal:summary.subtotal,
+     lines:rows.map(row=>({name:row[6],qty:row[7],kind:row[8]===1?'service':'product',price:row[9]}))});
+    output.textContent=number+' guardada por 14 días.';
+   }catch(error){output.textContent=error.message;}
+   finally{button.disabled=false;}
+   return;
+  }
   const vehicle=vehicleDescription();
   const lines=(items)=>items.map((r,index)=>{
    const quantity=r[7]??r[15], amount=num(r[12]);
@@ -421,7 +436,7 @@ function prefillPlanVehicle(vehicle){
  else if(!exact.length&&alternatives.length===1)filters.model=alternatives[0];
 }
 
-function render(options={}){enteredYear='';filters={year:'',brand:'',model:'',code:'',km:'',plan:'',type:'',search:''};vehicleBrandLogo=options.vehicleBrandLogo||'';importedCatalog=Array.isArray(options.catalogRows);catalogLabel=options.catalogLabel||'';source=importedCatalog?{rows:options.catalogRows}:referenceSource;workshopName=options.workshopName||'';workshopLogo=options.workshopLogo||'';registeredClients=options.clients||[];registeredVehicles=options.vehicles||[];planCustomer=options.selectedClient?.name||'';planPlate=options.selectedVehicle?.plate||'';prefillPlanVehicle(options.selectedVehicle);setTimeout(()=>{load();mountProforma();},0);return '<section id="native-maintenance" class="native-maintenance">'+body()+'</section>';}
+function render(options={}){savePlanQuote=options.savePlanQuote;enteredYear='';filters={year:'',brand:'',model:'',code:'',km:'',plan:'',type:'',search:''};vehicleBrandLogo=options.vehicleBrandLogo||'';importedCatalog=Array.isArray(options.catalogRows);catalogLabel=options.catalogLabel||'';source=importedCatalog?{rows:options.catalogRows}:referenceSource;workshopName=options.workshopName||'';workshopLogo=options.workshopLogo||'';registeredClients=options.clients||[];registeredVehicles=options.vehicles||[];planCustomer=options.selectedClient?.name||'';planPlate=options.selectedVehicle?.plate||'';prefillPlanVehicle(options.selectedVehicle);setTimeout(()=>{load();mountProforma();},0);return '<section id="native-maintenance" class="native-maintenance">'+body()+'</section>';}
 function resetLaterFilters(key){
  const order=['year','brand','model','code','km','plan'];
  const index=order.indexOf(key);
