@@ -34,7 +34,7 @@ window.EnjoyConnection = (() => {
     }
     return tokens.access_token;
   }
-  async function rpc(action,payload={}){const token=await access();if(!token)throw Error('Debe iniciar sesión.');return request('/rest/v1/rpc/'+(action.startsWith('blog-')?'enjoy_blog':action.startsWith('chat-')?'enjoy_chat':action.startsWith('order-')?'enjoy_orders':'enjoy_api'),{action,payload},token)}
+  async function rpc(action,payload={}){const token=await access();if(!token)throw Error('Debe iniciar sesión.');return request('/rest/v1/rpc/'+(action.startsWith('appointment-details-')?'enjoy_appointment_details':action.startsWith('blog-')?'enjoy_blog':action.startsWith('chat-')?'enjoy_chat':action.startsWith('order-')?'enjoy_orders':'enjoy_api'),{action,payload},token)}
   async function api(path,body){
     if(path==='register'){
       const b=body||{};

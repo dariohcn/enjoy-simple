@@ -264,7 +264,7 @@ function registrationRows(query){
   const shown=matchesClient?vehicles:vehicles.filter(matchesVehicle);
   if(!matchesClient&&!shown.length)return [];
   return ['<tr><td><strong>'+esc(record.name)+'</strong><small>'+[record.phone,record.email].filter(Boolean).map(esc).join(' · ')+'</small></td>'+
-   '<td>'+vehicleList(shown)+'</td><td><div class="actions">'+button('Ver ficha','profile',record.id,true)+' '+
+   '<td>'+vehicleList(shown)+'</td><td><div class="actions">'+button('Ver historial','profile',record.id,true)+' '+
    button('Editar cliente','client',record.id,true)+' <button type="button" class="btn secondary" data-register-vehicle="'+esc(record.id)+'">Agregar vehículo</button></div></td></tr>'];
  });
  const otherVehicles=unassigned.filter(matchesVehicle);
@@ -283,25 +283,120 @@ function importView(){return head('Importar catálogo','Administre las marcas y 
 function parseCSV(input){let rows=[],row=[],cell='',quoted=false;const separator=input.split(/\r?\n/)[0].includes(';')?';':',';for(let i=0;i<input.length;i++){const c=input[i];if(c==='"'){if(quoted&&input[i+1]==='"'){cell+='"';i++;}else quoted=!quoted;}else if(c===separator&&!quoted){row.push(cell.trim());cell='';}else if(c==='\n'&&!quoted){row.push(cell.trim());if(row.some(Boolean))rows.push(row);row=[];cell='';}else cell+=c;}if(quoted)throw Error('Hay comillas sin cerrar.');row.push(cell.trim());if(row.some(Boolean))rows.push(row);const headers=(rows.shift()||[]).map(x=>x.replace(/^\uFEFF/,'').toLowerCase());const keys=['codigo','tipo','nombre','categoria','precio'];if(keys.some(k=>!headers.includes(k)))throw Error('Faltan columnas obligatorias.');if(!rows.length||rows.length>500)throw Error('Cargue de 1 a 500 filas.');const codes=new Set();return rows.map((r,i)=>{const get=k=>r[headers.indexOf(k)]||'',type={servicio:'service',producto:'product',repuesto:'product'}[get('tipo').toLowerCase()],price=get('precio'),code=get('codigo');if(!type||!code||!get('nombre')||!get('categoria')||!/^\d+(\.\d{1,2})?$/.test(price))throw Error('Revise la fila '+(i+2)+'.');const serviceType=get('tipo_servicio'),estimatedMinutes=get('duracion')||'60';if(type==='service'&&(!serviceTypes.includes(serviceType)||!/^\d+$/.test(estimatedMinutes)||Number(estimatedMinutes)<15||Number(estimatedMinutes)>480))throw Error('Revise tipo_servicio y duracion en la fila '+(i+2)+'.');const key=type+':'+code;if(codes.has(key))throw Error('Código repetido en la fila '+(i+2)+'.');codes.add(key);return {code,type,name:get('nombre'),category:get('categoria'),price,serviceType,estimatedMinutes};});}
 function printQuote(){rememberQuote();const v=vehicle(vehicleId);if(!v||!quoteLines.length)return toast('Seleccione un vehículo y al menos una partida.');$('#integration-print')?.remove();const page=document.createElement('section');page.id='integration-print';page.innerHTML='<h1>'+esc(session.workshop)+'</h1><h2>Proforma '+esc(quoteNo)+'</h2><p>'+esc(isoToday())+' · '+esc(client(v.clientId)?.name)+' · '+esc(v.plate+' · '+v.brand+' '+v.model)+'</p>'+table(['Detalle','Cantidad','Precio','Importe'],quoteLines.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.qty+'</td><td>'+money(x.price)+'</td><td>'+money(cents(x.price)*x.qty/100)+'</td></tr>'))+'<h3>Subtotal: '+money(sum(quoteLines))+'</h3><p>'+esc(conditions)+'</p><p>Proforma, no factura. Impuestos por confirmar.</p>'+quotePhotos.map((p,i)=>'<figure><img src="'+p.url+'" alt="Foto '+(i+1)+'"><figcaption>Fotografía '+(i+1)+'</figcaption></figure>').join('');document.body.append(page);window.print();}
 function appointmentFields(){
- const form=$('#form');if(!form?.querySelector('[name="reason"]')||!form.querySelector('[name="time"]')||form.querySelector('#integration-service'))return;
- const record=data.appointments.find(a=>a.id===editContext.id)||{},services=catalog().filter(x=>x.kind==='service');
- const extra=document.createElement('div');extra.className='full';extra.innerHTML='<label>Servicio del catálogo<select id="integration-service" class="form-select" required><option value="">Seleccione un servicio</option>'+services.map(x=>'<option value="'+esc(x.id)+'" '+(record.catalogueServiceId===x.id?'selected':'')+'>'+esc(x.name)+' · '+money(x.price)+'</option>').join('')+'</select></label><fieldset><legend>Productos asociados · opcional</legend>'+catalog().filter(x=>x.kind==='product').map(x=>'<label class="integration-check"><input type="checkbox" data-iap="'+esc(x.id)+'"><span>'+esc(x.name)+' · '+money(x.price)+'</span><input type="number" class="form-control" value="1" min="1" max="999" data-iap-qty="'+esc(x.id)+'" aria-label="Cantidad de '+esc(x.name)+'"></label>').join('')+'</fieldset><p>Los recordatorios mantienen el plazo de una hora y las autorizaciones de WhatsApp configuradas en el sistema.</p>';
+ const form=$('#form');
+ if(!form?.querySelector('[name="time"]')||form.querySelector('#integration-service'))return;
+ const record=data.appointments.find(a=>a.id===editContext.id)||{};
+ const services=catalog().filter(x=>x.kind==='service');
+ const extra=document.createElement('div');
+ extra.className='full';
+ extra.innerHTML=`<label>Servicio del catálogo (opcional)<select id="integration-service" class="form-select"><option value="">Servicio no vinculado</option>${services.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+' · '+money(s.price)+'</option>').join('')}</select></label>
+  <label class="integration-check"><input type="checkbox" name="followsProforma" value="true"> Mantenimiento según proforma</label>
+  <label data-appointment-quote hidden>Proforma guardada (opcional)<select name="proformaId" class="form-select"></select></label>
+  <label>Fotos del estado del vehículo (máximo 4)<input class="form-control" type="file" data-appointment-photos accept="image/jpeg,image/png,image/webp" multiple></label>
+  <p data-photo-feedback role="status"></p><div class="integration-photos" data-photo-preview></div>`;
+ const products=catalog().filter(x=>x.kind==='product');
+ if(products.length)extra.insertAdjacentHTML('beforeend','<fieldset><legend>Productos asociados (opcional)</legend>'+products.map(p=>'<label class="integration-check"><input type="checkbox" data-iap="'+esc(p.id)+'"><span>'+esc(p.name)+'</span><input type="number" class="form-control" value="1" min="1" max="999" data-iap-qty="'+esc(p.id)+'" aria-label="Cantidad de '+esc(p.name)+'"></label>').join('')+'</fieldset>');
  form.querySelector('.fields').append(extra);
- const selectedService=extra.querySelector('#integration-service');selectedService.onchange=()=>{const s=services.find(x=>x.id===selectedService.value);if(!s)return;const reason=form.querySelector('[name="reason"]'),kind=form.querySelector('[name="serviceType"]');if(reason&&!reason.value.trim())reason.value=s.name;if(kind&&s.serviceType)kind.value=s.serviceType;};
- let oldProducts=record.associatedProducts||[];try{if(typeof oldProducts==='string')oldProducts=JSON.parse(oldProducts);}catch{oldProducts=[];}
- for(const p of oldProducts){const c=[...form.querySelectorAll('[data-iap]')].find(x=>x.dataset.iap===p.id),q=[...form.querySelectorAll('[data-iap-qty]')].find(x=>x.dataset.iapQty===p.id);if(c&&q){c.checked=true;q.value=p.qty;}}
+ const service=extra.querySelector('#integration-service'),kind=form.elements.serviceType;
+ const clientField=form.elements.clientId,vehicleField=form.elements.vehicleId;
+ const follows=form.elements.followsProforma,quote=form.elements.proformaId;
+ const file=extra.querySelector('[data-appointment-photos]'),preview=extra.querySelector('[data-photo-preview]'),feedback=extra.querySelector('[data-photo-feedback]');
+ let photos=[],photosChanged=false,processing=false;
+ const originalService=record.catalogueServiceId||record.serviceId||'';
+ service.value=originalService;
+ follows.checked=String(record.followsProforma)==='true';
+ function syncQuotes(chosen=''){
+  quote.closest('label').hidden=!follows.checked;
+  quote.disabled=!follows.checked;
+  const options=(data.requests||[]).filter(r=>r.kind==='proforma'&&r.clientId===clientField.value&&r.vehicleId===vehicleField.value);
+  quote.replaceChildren(new Option('Sin vincular una proforma guardada',''),...options.map(r=>new Option(r.quoteNumber||('Proforma '+r.id.slice(0,8)),r.id)));
+  quote.value=options.some(r=>r.id===chosen)?chosen:'';
+ }
+ queueMicrotask(()=>syncQuotes(record.proformaId));
+ follows.addEventListener('change',()=>syncQuotes(quote.value));
+ form.addEventListener('input',event=>{if(event.target.matches('[data-appointment-client], [name="vehicleId"]'))syncQuotes(quote.value);});
+ form.addEventListener('click',event=>{if(event.target.closest('[data-appointment-client-option]'))syncQuotes(quote.value);});
+ service.addEventListener('change',()=>{const selected=services.find(s=>s.id===service.value);if(selected?.serviceType)kind.value=selected.serviceType;});
+ function paintPhotos(){
+  preview.innerHTML=photos.map((photo,index)=>'<figure><img src="'+esc(photo)+'" alt="Foto del vehículo '+(index+1)+'"><button type="button" class="btn secondary" data-remove-photo="'+index+'">Quitar</button></figure>').join('');
+ }
+ if(record.id){
+  file.disabled=true;
+  api('appointment-details-read',{id:record.id}).then(result=>{
+   if(!extra.isConnected)return;
+   photos=(result.photos||[]).filter(photo=>safeImage(photo));
+   paintPhotos();
+   file.disabled=false;
+  }).catch(()=>{if(extra.isConnected)feedback.textContent='No se pudieron cargar las fotos guardadas. Vuelva a abrir la cita para intentarlo de nuevo.';});
+ }
+ file.addEventListener('change',async()=>{
+  const selected=[...file.files];
+  file.value='';
+  if(!selected.length||processing)return;
+  if(photos.length+selected.length>4){feedback.textContent='Puede adjuntar hasta cuatro fotos. Quite una antes de agregar otra.';return;}
+  processing=true;
+  file.disabled=true;
+  feedback.textContent='Preparando fotos…';
+  try{
+   const additions=[];
+   for(const image of selected){
+    const photo=await optimizedImage(image);
+    if(photo.length>75000)throw Error('Seleccione una foto de menor tamaño.');
+    additions.push(photo);
+   }
+   photos.push(...additions);
+   photosChanged=true;
+   paintPhotos();
+   feedback.textContent='';
+  }catch(error){feedback.textContent=error.message;}
+  finally{processing=false;file.disabled=false;}
+ });
+ preview.addEventListener('click',event=>{
+  const button=event.target.closest('[data-remove-photo]');
+  if(!button||processing)return;
+  photos.splice(Number(button.dataset.removePhoto),1);
+  photosChanged=true;
+  feedback.textContent='';
+  paintPhotos();
+ });
+ let oldProducts=record.associatedProducts||[];
+ try{if(typeof oldProducts==='string')oldProducts=JSON.parse(oldProducts);}catch{oldProducts=[];}
+ const productInputs=[...extra.querySelectorAll('[data-iap]')];
+ const quantities=new Map([...extra.querySelectorAll('[data-iap-qty]')].map(input=>[input.dataset.iapQty,input]));
+ for(const p of oldProducts){const input=productInputs.find(el=>el.dataset.iap===p.id);if(input){input.checked=true;quantities.get(p.id).value=p.qty;}}
  const previous=form.onsubmit;
- form.onsubmit=async event=>{event.preventDefault();const service=services.find(x=>x.id===$('#integration-service').value);if(!service)return toast('Seleccione un servicio del catálogo.');const products=[];for(const el of form.querySelectorAll('[data-iap]:checked')){const p=catalog().find(x=>x.kind==='product'&&x.id===el.dataset.iap),qty=Number([...form.querySelectorAll('[data-iap-qty]')].find(x=>x.dataset.iapQty===el.dataset.iap).value);if(!p||!Number.isInteger(qty)||qty<1||qty>999)return toast('Revise las cantidades.');products.push({...p,qty});}
- const hidden=(name,value)=>{let el=form.querySelector('[name="'+name+'"]');if(!el){el=document.createElement('input');el.type='hidden';el.name=name;form.append(el);}el.value=value;};
- hidden('catalogueServiceId',service.id);hidden('catalogueServiceName',service.name);hidden('associatedProducts',JSON.stringify(products));const reason=form.querySelector('[name="reason"]');if(!reason.value.trim())reason.value=service.name;return previous.call(form,event);};
+ form.onsubmit=async event=>{
+  event.preventDefault();
+  if(processing){feedback.textContent='Espere a que se preparen las fotos.';return;}
+  const selected=services.find(s=>s.id===service.value);
+  const associated=[];
+  for(const input of productInputs.filter(el=>el.checked)){
+   const product=products.find(p=>p.id===input.dataset.iap),qty=Number(quantities.get(input.dataset.iap).value);
+   if(!product||!Number.isInteger(qty)||qty<1||qty>999)return toast('Revise las cantidades.');
+   associated.push({...product,qty});
+  }
+  const hidden=(name,value)=>{
+   let input=extra.querySelector('[name="'+name+'"]');
+   if(value===undefined){input?.remove();return;}
+   if(!input){input=document.createElement('input');input.type='hidden';input.name=name;extra.append(input);}
+   input.value=value;
+  };
+  hidden('serviceId',selected?.id||'');
+  hidden('catalogueServiceId',selected?.id);
+  hidden('catalogueServiceName',selected?.name);
+  hidden('associatedProducts',JSON.stringify(associated));
+  hidden('reason',selected?.name||(follows.checked?'Mantenimiento según proforma':record.serviceType===kind.value&&!originalService&&!record.followsProforma?record.reason||kind.value:kind.value));
+  hidden('vehiclePhotos',photosChanged?JSON.stringify(photos):undefined);
+  return previous.call(form,event);
+ };
 }
 modal=function(...args){const result=baseModal(...args);if(session?.role==='owner'&&editContext.action==='appointment')appointmentFields();return result;};
 const previousOrderPending=renderOrderPending;
 renderOrderPending=function(){if(!session)return;const actual=view;if(actual==='dashboard')view='overview';try{if(['overview','monitor'].includes(view)&&!$('#contenido .workbench-strip')&&!$('#contenido .live-title'))return;return previousOrderPending();}finally{view=actual;}};
 const baseAppointmentCard=appointmentCard;
-appointmentCard=function(a){const html=baseAppointmentCard(a);let products=a.associatedProducts||[];try{if(typeof products==='string')products=JSON.parse(products);}catch{products=[];}const extra=(a.catalogueServiceName?'<p>Servicio: '+esc(a.catalogueServiceName)+'</p>':'')+(Array.isArray(products)&&products.length?'<p>Productos: '+products.map(p=>esc(p.name)+' × '+Number(p.qty)).join(' · ')+'</p>':'');return html.replace('</article>',()=>'<div class="integration-appointment-detail">'+extra+'</div></article>');};
+appointmentCard=function(a){const html=baseAppointmentCard(a);let products=a.associatedProducts||[];try{if(typeof products==='string')products=JSON.parse(products);}catch{products=[];}const extra=(String(a.followsProforma)==='true'?'<p>Mantenimiento según proforma</p>':'')+(a.catalogueServiceName?'<p>Servicio: '+esc(a.catalogueServiceName)+'</p>':'')+(Array.isArray(products)&&products.length?'<p>Productos: '+products.map(p=>esc(p.name)+' × '+Number(p.qty)).join(' · ')+'</p>':'');return html.replace('</article>',()=>'<div class="integration-appointment-detail">'+extra+'</div></article>');};
 go=function(next){if(!permitted(next))return toast('Esta sección no está disponible para su perfil.');return baseGo(next);};
-Object.assign(names,{blog:['','Blog'],monitor:['','Panel de control'],adminHome:['','Administración'],overview:['','Inicio'],dashboard:['','Panel de control'],proforma:['','Proforma'],registration:['','Registro'],catalogImport:['','Importar catálogo'],maintenanceReport:['','Plan de mantenimiento']});
+Object.assign(names,{orders:['','Órdenes de trabajo'],blog:['','Blog'],monitor:['','Panel de control'],adminHome:['','Administración'],overview:['','Inicio'],dashboard:['','Panel de control'],proforma:['','Proforma'],registration:['','Registro'],catalogImport:['','Importar catálogo'],maintenanceReport:['','Plan de mantenimiento']});
 render=function(){
  if(!session)return baseRender();
  if(identity!==session.email){identity=session.email;registrationQuery='';quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];quoteLines=[];vehicleId='';quoteId='';saved=false;quoteNo='';conditions='';if(session.role==='admin')view='adminHome';}

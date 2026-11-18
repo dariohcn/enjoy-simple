@@ -7,10 +7,10 @@ function categorySelect(label,name,items,value='',required=true){const options=[
 const modalBeforeClassifications=modal;
 modal=function(title,fields,onSave,submit='Guardar'){
  const context={...editContext},kind=context.action;
- modalBeforeClassifications(title,fields,async values=>{
+ modalBeforeClassifications(title,fields,async (values,submitter)=>{
   if(['service','appointment','plan','request'].includes(kind)&&!serviceTypes.includes(values.serviceType))throw Error('Seleccione un tipo de servicio.');
   if(kind==='service'&&(Number(values.estimatedMinutes)<15||Number(values.estimatedMinutes)>480))throw Error('Indique una duración entre 15 y 480 minutos.');
-  return onSave(values);
+  return onSave(values,submitter);
  },submit);
  const form=$('#form'),fieldGrid=$('#dialog-content .fields');
  if(kind==='request'){
@@ -41,11 +41,7 @@ modal=function(title,fields,onSave,submit='Guardar'){
  if(kind==='appointment'||kind==='plan'){
   const record=kind==='appointment'?data.appointments.find(a=>a.id===context.id)||{}:{};
   fieldGrid.insertAdjacentHTML('afterbegin',categorySelect('Tipo de servicio a contratar','serviceType',serviceTypes,record.serviceType||''));
-  if(kind==='appointment'){
-   fieldGrid.insertAdjacentHTML('afterbegin',`<label>Servicio del catálogo (opcional)<select name="serviceId" class="form-select"><option value="">Servicio no vinculado</option>${data.services.map(s=>`<option value="${esc(s.id)}" ${record.serviceId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>`);
-   form.querySelector('[name="serviceId"]').onchange=e=>{const s=data.services.find(s=>s.id===e.target.value);if(!s)return;form.querySelector('[name="reason"]').value=s.name;form.querySelector('[name="serviceType"]').value=s.serviceType||'';form.querySelector('[name="duration"]').value=s.estimatedMinutes||60;};
-   const duration=form.querySelector('[name="duration"]');duration.min=15;duration.max=480;duration.step=15; ['supplies','labor','discount'].forEach(n=>{const input=form.querySelector('[name='+n+']');if(input){input.step='0.01';input.min='0';if(n==='discount')input.max='100';}});
-  }
+
  }
 };
 function filterSelect(id,label,items,value){return `<label>${label}<select class="form-select" id="${id}"><option value="">Todos</option>${items.map(x=>`<option value="${esc(x)}" ${x===value?'selected':''}>${esc(x)}</option>`).join('')}</select></label>`;}

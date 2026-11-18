@@ -30,18 +30,18 @@ const ordersBeforeTaskFilter=selectedOrders;selectedOrders=function(){const rows
 const wireOrdersBeforePolish=wireOrders;wireOrders=function(){wireOrdersBeforePolish();if(orderSpecialFilter){$('#order-results')?.insertAdjacentHTML('beforebegin','<div id="order-special-filter" class="enjoy-filter-note">'+(orderSpecialFilter==='overdue'?'Órdenes fuera de plazo':'Órdenes en proceso')+'<button class="text-button" data-enjoy-clear-task>Quitar filtro ×</button></div>');}$('#order-stage')?.addEventListener('change',()=>{orderSpecialFilter='';$('#order-special-filter')?.remove();$('#order-results').innerHTML=ordersBody();labelTables();});};
 document.addEventListener('click',e=>{if(e.target.closest('[data-enjoy-clear-task]')){orderSpecialFilter='';render();}});
 matchMedia('(max-width:1099px)').addEventListener('change',()=>{if(session)setNavigation(false,false);});
-newOrder=async function(appointmentId=''){
+newOrder=async function(appointmentId='',clientId=''){
  if(session?.role!=='owner')return;
  if(!orderLoaded)await loadOrders();
  if(!data.clients.length||!data.vehicles.length)return toast('Registre primero el cliente y su vehículo.');
  const eligible=data.appointments.filter(a=>['scheduled','arrived'].includes(a.status)&&!orderRows.some(o=>o.appointment_id===a.id));
  const appointments='<label>Cita de origen (opcional)<select name="appointment_id" class="form-select"><option value="">Recepción sin cita previa</option>'+eligible.map(a=>'<option value="'+esc(a.id)+'" '+(a.id===appointmentId?'selected':'')+'>'+esc(a.date+' · '+a.time+' · '+(vehicle(a.vehicleId)?.plate||''))+'</option>').join('')+'</select></label>';
- modal('Recepción del vehículo',appointments+select('Cliente','client_id',data.clients)+select('Vehículo','vehicle_id',data.vehicles)+select('Tipo de servicio','service_type',serviceTypes.map(s=>({id:s,name:s})))+field('Trabajo solicitado','description')+field('Fecha comprometida (opcional)','due','','date',false),async b=>{
+ modal('Recepción del vehículo',appointments+select('Cliente','client_id',data.clients,clientId)+select('Vehículo','vehicle_id',data.vehicles)+select('Tipo de servicio','service_type',serviceTypes.map(s=>({id:s,name:s})))+field('Trabajo solicitado','description')+field('Fecha comprometida (opcional)','due','','date',false),async b=>{
  const a=eligible.find(a=>a.id===b.appointment_id);await api('order-create',{...b,client_id:a?.clientId||b.client_id,vehicle_id:a?.vehicleId||b.vehicle_id});await loadOrders();data=await api('data');render();toast('Vehículo recibido. Orden creada y cita actualizada.');
  },'Recibir y crear orden');
  const form=$('#form'),source=form.querySelector('[name="appointment_id"]'),c=form.querySelector('[name="client_id"]'),v=form.querySelector('[name="vehicle_id"]');
  const vehicles=selected=>{v.innerHTML='<option value="">Seleccione un vehículo</option>'+data.vehicles.filter(x=>x.clientId===c.value).map(x=>'<option value="'+esc(x.id)+'" '+(selected===x.id?'selected':'')+'>'+esc(x.plate)+'</option>').join('');};
- const fill=()=>{const a=eligible.find(a=>a.id===source.value);c.disabled=!!a;v.disabled=!!a;if(a){c.value=a.clientId;vehicles(a.vehicleId);form.querySelector('[name="service_type"]').value=serviceTypes.includes(a.serviceType)?a.serviceType:'';form.querySelector('[name="description"]').value=a.reason||'';}else vehicles();};
+ const fill=()=>{const a=eligible.find(a=>a.id===source.value);c.disabled=!!a;v.disabled=!!a;if(a){c.value=a.clientId;vehicles(a.vehicleId);form.querySelector('[name="service_type"]').value=serviceTypes.includes(a.serviceType)?a.serviceType:'';form.querySelector('[name="description"]').value=a.reason||'';}else{vehicles();if(v.options.length===2)v.selectedIndex=1;}};
  c.addEventListener('change',()=>vehicles());source.addEventListener('change',fill);fill();
 };
 const arrangeBeforeReception=arrangeEnjoyWorkspace;arrangeEnjoyWorkspace=function(){
