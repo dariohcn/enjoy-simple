@@ -243,19 +243,41 @@ function options(){return '<option value="">Seleccione un vehículo</option>'+da
 function rememberQuote(){if($('#iq-vehicle'))vehicleId=$('#iq-vehicle').value;if($('#iq-number'))quoteNo=$('#iq-number').value.trim();conditions=$('#iq-conditions')?.value.trim()||'';}
 function savedQuotes(){return '<section class="card integration-pad"><h2>Proformas guardadas</h2>'+table(['Número','Fecha','Vehículo','Subtotal','Acción'],(data.requests||[]).filter(r=>r.kind==='proforma').map(r=>'<tr><td>'+esc(r.quoteNumber||r.id.slice(0,8))+'</td><td>'+esc(r.quoteDate)+'</td><td>'+esc(vehicle(r.vehicleId)?.plate||'')+'</td><td>'+money(Number(r.quoteSubtotal||0))+'</td><td><button class="btn secondary" data-iq-open="'+esc(r.id)+'">Abrir</button></td></tr>'))+'</section>';}
 function quote(){return head('Proforma','Seleccione partidas del catálogo disponible para su taller.')+'<section class="card integration-pad"><div class="fields"><label>Vehículo<select class="form-select" id="iq-vehicle">'+options()+'</select></label><label>Número de proforma<input class="form-control" id="iq-number" maxlength="60" value="'+esc(quoteNo)+'" placeholder="PRO-0001"></label></div><div class="integration-picker"><label>Servicio o producto<select class="form-select" id="iq-catalog"><option value="">Seleccione una partida</option>'+['service','product'].map(kind=>'<optgroup label="'+(kind==='service'?'Servicios':'Productos y repuestos')+'">'+catalog().filter(x=>x.kind===kind).map(x=>'<option value="'+esc(x.key)+'">'+esc(x.name)+' · '+money(x.price)+' / '+esc(x.unit)+'</option>').join('')+'</optgroup>').join('')+'</select></label><label>Cantidad<input class="form-control" id="iq-qty" type="number" min="1" max="999" value="1"></label><button type="button" class="btn" data-iq-add>Agregar</button></div>'+table(['Detalle','Tipo','Cantidad','Precio','Importe','Acción'],quoteLines.map((x,i)=>'<tr><td>'+esc(x.name)+'</td><td>'+(x.kind==='service'?'Servicio':'Producto')+'</td><td>'+x.qty+'</td><td>'+money(x.price)+'</td><td>'+money(cents(x.price)*x.qty/100)+'</td><td><button type="button" class="btn secondary" data-iq-remove="'+i+'">Quitar</button></td></tr>'))+'<div class="integration-total"><span>Subtotal</span><strong>'+money(sum(quoteLines))+'</strong></div><label>Condiciones<textarea id="iq-conditions" class="form-control" maxlength="1500">'+esc(conditions)+'</textarea></label><p>Confirme disponibilidad, compatibilidad e impuestos aplicables. Proforma, no factura.</p><div class="actions"><button class="btn" type="button" data-iq-save>Guardar proforma</button><button class="btn secondary" type="button" data-iq-print>Imprimir / PDF</button></div><p id="iq-save-status" role="status">'+(saved?'Proforma guardada en el sistema.':'')+'</p></section><section class="card integration-pad"><h2>Fotografías para el PDF</h2><p>Se incluyen al imprimir; las fotos permanecen en esta página y no se guardan en la base de datos.</p><input id="iq-photos" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple aria-label="Fotografías para la proforma"><div class="integration-photos">'+quotePhotos.map((p,i)=>'<figure><img src="'+p.url+'" alt="Fotografía '+(i+1)+'"><button type="button" class="btn secondary" data-iq-photo="'+i+'">Quitar</button></figure>').join('')+'</div><p>Para WhatsApp: guarde el PDF y adjúntelo como documento. No se envía automáticamente.</p></section>'+savedQuotes();}
-function vehicleRows(rows){return table(['Placa','Vehículo','Propietario','Kilometraje','Acción'],rows.map(v=>'<tr><td>'+esc(v.plate)+'</td><td>'+esc(v.brand+' '+v.model)+'<small>'+esc(v.year)+'</small></td><td>'+esc(client(v.clientId)?.name||'')+'</td><td>'+esc(v.km)+' km</td><td><button class="btn secondary" data-iq-select="'+esc(v.id)+'">Preparar proforma</button>'+button('Editar ficha','vehicle',v.id,true)+'</td></tr>'));}
+let registrationQuery='';
+function registrationRows(query){
+ const normalize=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ const normalizePlate=value=>normalize(value).replace(/[^a-z0-9]/g,'');
+ const term=normalize(query),plateTerm=normalizePlate(query);
+ const vehiclesByClient=new Map(data.clients.map(record=>[record.id,[]]));
+ const unassigned=[];
+ for(const vehicle of data.vehicles)(vehiclesByClient.get(vehicle.clientId)||unassigned).push(vehicle);
+ const matchesVehicle=vehicle=>!term||normalize([vehicle.brand,vehicle.model].join(' ')).includes(term)||
+  (plateTerm&&normalizePlate(vehicle.plate).includes(plateTerm));
+ const vehicleList=vehicles=>vehicles.length?'<ul class="registration-vehicles">'+vehicles.map(vehicle=>
+  '<li><strong>'+esc(vehicle.plate||'Sin placa')+'</strong> · '+esc([vehicle.brand,vehicle.model,vehicle.year].filter(Boolean).join(' '))+
+  '<div class="actions">'+button('Editar vehículo','vehicle',vehicle.id,true)+
+  ' <button type="button" class="btn secondary" data-iq-select="'+esc(vehicle.id)+'">Preparar proforma</button></div></li>').join('')+
+  '</ul>':'<span>Sin vehículos registrados</span>';
+ const rows=data.clients.flatMap(record=>{
+  const vehicles=vehiclesByClient.get(record.id);
+  const matchesClient=!term||normalize(record.name).includes(term);
+  const shown=matchesClient?vehicles:vehicles.filter(matchesVehicle);
+  if(!matchesClient&&!shown.length)return [];
+  return ['<tr><td><strong>'+esc(record.name)+'</strong><small>'+[record.phone,record.email].filter(Boolean).map(esc).join(' · ')+'</small></td>'+
+   '<td>'+vehicleList(shown)+'</td><td><div class="actions">'+button('Ver ficha','profile',record.id,true)+' '+
+   button('Editar cliente','client',record.id,true)+' <button type="button" class="btn secondary" data-register-vehicle="'+esc(record.id)+'">Agregar vehículo</button></div></td></tr>'];
+ });
+ const otherVehicles=unassigned.filter(matchesVehicle);
+ if(otherVehicles.length)rows.push('<tr><td>Vehículos sin cliente vinculado</td><td>'+vehicleList(otherVehicles)+'</td><td></td></tr>');
+ return rows.length?table(['Cliente','Vehículos','Acciones del cliente'],rows):
+  '<p role="status">'+(term?'No hay clientes ni vehículos que coincidan.':'Todavía no hay fichas registradas.')+'</p>';
+}
 function registration(){
- const clients=table(['Cliente','Teléfono','Correo electrónico','Acción'],data.clients.map(client=>
-  '<tr><td><strong>'+esc(client.name)+'</strong></td><td>'+esc(client.phone||'—')+'</td><td>'+esc(client.email||'—')+'</td><td>'+
-  button('Ver ficha','profile',client.id,true)+' '+button('Editar cliente','client',client.id,true)+'</td></tr>'
- ));
  return head('Registro','Gestiona las fichas de clientes y sus vehículos.',button('Registrar cliente','client'))+
-  '<section class="card integration-pad"><h2>Clientes registrados</h2>'+
-  (data.clients.length?clients:'<p>Todavía no hay clientes registrados.</p>')+'</section>'+
-  '<section class="card integration-pad"><h2>Vehículos registrados</h2>'+
-  '<label>Buscar por placa<input class="form-control" id="integration-plate" placeholder="Ej.: ABC-1234"></label>'+
-  '<div class="actions"><button class="btn" data-integration-search>Buscar</button>'+button('Crear vehículo','vehicle')+'</div>'+
-  '<div id="integration-results">'+(data.vehicles.length?vehicleRows(data.vehicles):'<p>Todavía no hay vehículos registrados.</p>')+'</div></section>';
+  '<section class="card integration-pad"><form id="integration-registration-search" class="registration-search">'+
+  '<label>Buscar por cliente, placa o marca<input type="search" class="form-control" name="query" value="'+esc(registrationQuery)+'"></label>'+
+  '<button class="btn" type="submit">Buscar</button></form>'+
+  '<div id="integration-results">'+registrationRows(registrationQuery)+'</div></section>';
 }
 function importView(){return head('Importar catálogo','Administre las marcas y cargue tarifas diferenciadas por tipo y región.')+window.EnjoyVehicleCatalog.adminView();}
 function parseCSV(input){let rows=[],row=[],cell='',quoted=false;const separator=input.split(/\r?\n/)[0].includes(';')?';':',';for(let i=0;i<input.length;i++){const c=input[i];if(c==='"'){if(quoted&&input[i+1]==='"'){cell+='"';i++;}else quoted=!quoted;}else if(c===separator&&!quoted){row.push(cell.trim());cell='';}else if(c==='\n'&&!quoted){row.push(cell.trim());if(row.some(Boolean))rows.push(row);row=[];cell='';}else cell+=c;}if(quoted)throw Error('Hay comillas sin cerrar.');row.push(cell.trim());if(row.some(Boolean))rows.push(row);const headers=(rows.shift()||[]).map(x=>x.replace(/^\uFEFF/,'').toLowerCase());const keys=['codigo','tipo','nombre','categoria','precio'];if(keys.some(k=>!headers.includes(k)))throw Error('Faltan columnas obligatorias.');if(!rows.length||rows.length>500)throw Error('Cargue de 1 a 500 filas.');const codes=new Set();return rows.map((r,i)=>{const get=k=>r[headers.indexOf(k)]||'',type={servicio:'service',producto:'product',repuesto:'product'}[get('tipo').toLowerCase()],price=get('precio'),code=get('codigo');if(!type||!code||!get('nombre')||!get('categoria')||!/^\d+(\.\d{1,2})?$/.test(price))throw Error('Revise la fila '+(i+2)+'.');const serviceType=get('tipo_servicio'),estimatedMinutes=get('duracion')||'60';if(type==='service'&&(!serviceTypes.includes(serviceType)||!/^\d+$/.test(estimatedMinutes)||Number(estimatedMinutes)<15||Number(estimatedMinutes)>480))throw Error('Revise tipo_servicio y duracion en la fila '+(i+2)+'.');const key=type+':'+code;if(codes.has(key))throw Error('Código repetido en la fila '+(i+2)+'.');codes.add(key);return {code,type,name:get('nombre'),category:get('categoria'),price,serviceType,estimatedMinutes};});}
@@ -282,7 +304,7 @@ go=function(next){if(!permitted(next))return toast('Esta sección no está dispo
 Object.assign(names,{blog:['','Blog'],monitor:['','Panel de control'],adminHome:['','Administración'],overview:['','Inicio'],dashboard:['','Panel de control'],proforma:['','Proforma'],registration:['','Registro'],catalogImport:['','Importar catálogo'],maintenanceReport:['','Plan de mantenimiento']});
 render=function(){
  if(!session)return baseRender();
- if(identity!==session.email){identity=session.email;quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];quoteLines=[];vehicleId='';quoteId='';saved=false;quoteNo='';conditions='';if(session.role==='admin')view='adminHome';}
+ if(identity!==session.email){identity=session.email;registrationQuery='';quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];quoteLines=[];vehicleId='';quoteId='';saved=false;quoteNo='';conditions='';if(session.role==='admin')view='adminHome';}
  if(!permitted(view))view=session.role==='admin'?'adminHome':'overview';
  const requested=view,custom=['adminHome','dashboard','maintenanceReport','proforma','registration','catalogImport','blog'].includes(requested);
  if(custom)view=requested==='dashboard'?'overview':'security';
@@ -294,7 +316,15 @@ render=function(){
  if(requested==='dashboard'){$('#contenido').innerHTML=window.EnjoyVehicleCatalog.dashboard();window.EnjoyVehicleCatalog.wireDashboard();}
  if(requested==='calendar'&&session.role==='owner')$('#contenido').insertAdjacentHTML('afterbegin','<div data-vehicle-alarms>'+window.EnjoyVehicleCatalog.alarmBanner()+'</div>');
  if(session.role==='owner')window.EnjoyVehicleCatalog.checkAlarms();
- if(requested==='registration')$('#contenido').innerHTML=registration();
+ if(requested==='registration'){
+  $('#contenido').innerHTML=registration();
+  $('#integration-registration-search').addEventListener('submit',event=>{
+   event.preventDefault();
+   registrationQuery=event.currentTarget.elements.query.value;
+   $('#integration-results').innerHTML=registrationRows(registrationQuery);
+   labelTables();
+  });
+ }
  if(requested==='catalogImport'){$('#contenido').innerHTML=importView();window.EnjoyVehicleCatalog.wireAdmin();}
  if(session.role==='admin'&&requested==='services')$('#contenido').innerHTML=head('Servicios centrales','La oferta publicada se refleja en todos los talleres autorizados.','<button class="btn" data-central-service>Nuevo servicio central</button>')+table(['Código','Servicio','Tipo','Precio','Acción'],data.services.filter(s=>s.central).map(s=>'<tr><td>'+esc(s.code)+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.serviceType)+'</td><td>'+money(total(s))+'</td><td><button class="btn secondary" data-central-service="'+esc(s.id)+'">Editar</button></td></tr>'));
  $('#crumb').textContent=requested==='security'&&session.role==='owner'?'Configuración de usuario':names[requested]?.[1]||names.security[1];
@@ -318,7 +348,8 @@ document.addEventListener('click',async event=>{
  if(session.role!=='owner')return;
  if(b.hasAttribute('data-iq-open')){const r=data.requests.find(r=>r.id===b.dataset.iqOpen&&r.kind==='proforma');if(!r||r.status!=='draft')throw Error('La proforma no está disponible para edición.');vehicleId=r.vehicleId;quoteId=r.id;quoteLines=(r.quoteLines||[]).map(x=>({...x}));quoteNo=r.quoteNumber||'';conditions=r.conditions||'';saved=true;quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];return go('proforma');}
  if(b.hasAttribute('data-iq-select')){vehicleId=b.dataset.iqSelect;quoteNo='';conditions='';quoteLines=[];quotePhotos.forEach(p=>URL.revokeObjectURL(p.url));quotePhotos=[];quoteId='';saved=false;return go('proforma');}
- if(b.hasAttribute('data-integration-search')){const q=$('#integration-plate').value.toUpperCase().replace(/[^A-Z0-9]/g,'');$('#integration-results').innerHTML=vehicleRows(data.vehicles.filter(v=>String(v.plate).toUpperCase().replace(/[^A-Z0-9]/g,'').includes(q)));labelTables();return;}
+ if(b.hasAttribute('data-register-vehicle')&&data.clients.some(record=>record.id===b.dataset.registerVehicle))
+  return openVehicleForm('',b.dataset.registerVehicle);
  if(b.hasAttribute('data-iq-add')){rememberQuote();const item=catalog().find(x=>x.key===$('#iq-catalog').value),qty=Number($('#iq-qty').value);if(!item||!Number.isInteger(qty)||qty<1||qty>999)throw Error('Seleccione una partida y una cantidad de 1 a 999.');if(quoteLines.length>=100)throw Error('Máximo 100 partidas.');quoteLines.push({...item,qty});saved=false;return render();}
  if(b.hasAttribute('data-iq-remove')){rememberQuote();quoteLines.splice(Number(b.dataset.iqRemove),1);saved=false;return render();}
  if(b.hasAttribute('data-iq-photo')){rememberQuote();URL.revokeObjectURL(quotePhotos.splice(Number(b.dataset.iqPhoto),1)[0].url);return render();}
