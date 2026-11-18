@@ -267,13 +267,21 @@ function wireAppointmentClient(form,vehicleId){
 function openVehicleForm(id,clientId=''){
  if(!data.clients.length)return toast('Registre un cliente antes de ingresar un vehículo.');
  const record=vehicle(id)||{};
+ const catalogField=(label,name,value,attrs='')=>'<label>'+label+'<input class="form-control" name="'+name+'" value="'+esc(value??'')+'" list="vehicle-field-'+name+'" autocomplete="off" required '+attrs+'><datalist id="vehicle-field-'+name+'"></datalist></label>';
  modal('Ficha del vehículo',select('Propietario','clientId',data.clients,record.clientId||clientId)+
   field('Placa','plate',record.plate)+field('Chasis / VIN','chassis',record.chassis||record.vin||'','text',false)+
-  field('Marca','brand',record.brand)+field('Modelo','model',record.model)+
-  field('Año','year',record.year||new Date().getFullYear(),'number'),async values=>{
-   await save('vehicles',{...values,id,km:record.km??0});
+  catalogField('Marca','brand',record.brand)+catalogField('Modelo','model',record.model)+
+  catalogField('Año','year',record.year,'inputmode="numeric" maxlength="4" pattern="[0-9]{4}"')+
+  '<label>Kilometraje actual (opcional)<input class="form-control" name="km" type="number" min="0" step="1" inputmode="numeric" value="'+esc(record.km||'')+'" placeholder="Km del odómetro"></label>'+
+  '<p class="full" data-vehicle-catalog-status role="status"></p>',async values=>{
+   const {brand,model,year,km,...other}=values;
+   if(!brand.trim()||!model.trim())throw Error('Ingrese la marca y el modelo del vehículo.');
+   if(Number(year)<1900||Number(year)>2100)throw Error('Ingrese un año válido entre 1900 y 2100.');
+   if(km!==''&&(!Number.isSafeInteger(Number(km))||Number(km)<0))throw Error('Ingrese el kilometraje actual en kilómetros enteros.');
+   await save('vehicles',{...other,id,brand:brand.trim(),model:model.trim(),year,km:km===''?record.km??0:Number(km)});
    if(clientId)return ()=>openClientForm(clientId);
   });
+ window.EnjoyVehicleCatalog?.wireVehicleFields($('#form'),data.vehicles);
 }
 
 function register(){

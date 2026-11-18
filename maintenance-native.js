@@ -43,16 +43,19 @@ function selection(){let rows=source?.rows||[],choices={};
  rows=year?rows.filter(row=>{
   const label=yearLabel(row);
   return /^\d{4}$/.test(year)?label==='Sin año indicado'||byLabel.get(label).includes(year):label===year;
- }):[];
- for(const [key,i] of [['brand',0],['model',1],['code',2],['km',4],['plan',13]]){choices[key]=unique(rows,i);rows=pick(rows,key,i);}if(source?.plans)rows=rows.flatMap(h=>source.plans[h[14]][6].map(index=>{const l=source.items[index];return [h[0],h[1],h[2],h[3],h[4],l[0],l[1],l[2],l[3],l[4],l[5],l[6],l[7],h[13],null,l[8]];}));return {rows,choices};}
+ }):rows;
+ const brands=unique(rows,0);
+ if(brands.length===1)filters.brand=brands[0];
+ for(const [key,i] of [['brand',0],['model',1],['code',2],['km',4],['plan',13]]){choices[key]=unique(rows,i);rows=pick(rows,key,i);}if(!year)rows=[];if(source?.plans)rows=rows.flatMap(h=>source.plans[h[14]][6].map(index=>{const l=source.items[index];return [h[0],h[1],h[2],h[3],h[4],l[0],l[1],l[2],l[3],l[4],l[5],l[6],l[7],h[13],null,l[8]];}));return {rows,choices};}
 function visibleRows(rows){const q=filters.search.toLocaleLowerCase('es');return rows.filter(r=>(!filters.type||(filters.type==='labor'?num(r[8])===1:num(r[8])!==1))&&(!q||[r[5],r[6]].join(' ').toLocaleLowerCase('es').includes(q)));}
 function totals(rows,iva=15){const labor=currencySum(rows.filter(r=>num(r[8])===1)),subtotal=currencySum(rows),parts=round(subtotal-labor);const extra=round(subtotal*iva/100);return {labor,parts,subtotal,total:round(subtotal+extra),extra,rate:Math.max(0,...rows.filter(r=>num(r[8])===1).map(r=>num(r[10])))};}
 function option(key,values,label,format=x=>x){
  const missing={year:'Sin año indicado',code:'Sin versión indicada'}[key];
+ const dependency={model:'Seleccione la marca',km:'Seleccione el modelo'}[key];
  const choices=key==='code'?values.filter(value=>value!==missing):values;
  const placeholder='<option value="" '+(!filters[key]?'selected':'')+'>Seleccione</option>';
  const options=choices.length?placeholder+choices.map(value=>'<option value="'+safe(value)+'" '+(value===filters[key]?'selected':'')+'>'+safe(key==='year'&&value===otherYear?'Otros':format(value))+'</option>').join(''):
-  '<option>'+safe(values.length&&missing?missing+' en el catálogo':'Sin opciones')+'</option>';
+  '<option>'+safe(values.length&&missing?missing+' en el catálogo':key==='km'&&filters.model?'Sin intervalos disponibles':dependency||'Sin opciones')+'</option>';
  return '<label>'+label+'<select class="form-select" data-nm-filter="'+key+'" '+(!choices.length?'disabled':'')+'>'+options+'</select></label>';
 }
 const encabezadosMatriz=['AÑO','MODELO','KILOMETRAJE (x 1000)','TIPO','NP','DESCRIPCIÓN','NOMENCLATURA','CANTIDAD (Hrs/Unidad/Lts)','VUNIT','SUBTOTAL','CATEGORÍA','APLICA'];
@@ -64,7 +67,7 @@ function body(){
  if(!source)return '<div class="nm-state" role="status">'+(failure?'<strong>No se pudo cargar el tarifario.</strong><p>'+safe(failure)+'</p><button class="btn secondary" data-nm-retry>Reintentar</button>':'<span class="nm-loading"></span><strong>Cargando planes de mantenimiento…</strong>')+'</div>';
  const {rows:planRows,choices}=selection(),part=planRows[0];
  const plans=choices.plan.map(id=>[id,source.rows.find(r=>text(r[13])===id&&text(r[2])===filters.code)?.[3]||id]);
- const filterBar='<div class="nm-filterbar">'+option('year',choices.year,'Año')+(filters.year===otherYear?'<label>Ingrese el año<input class="form-control" type="text" inputmode="numeric" maxlength="4" data-nm-entered-year value="'+safe(enteredYear)+'" placeholder="Ej. 2018"></label>':'')+option('brand',choices.brand,'Marca')+option('model',choices.model,'Modelo')+ (choices.code.some(code=>code!=='Sin versión indicada')?option('code',choices.code,'Versión'):'')+option('km',choices.km,'Kilometraje',v=>v?Number(v).toLocaleString('es-EC')+' km':'Sin intervalo')+'<button class="btn secondary" data-nm-reset>Restablecer</button></div>';
+ const filterBar='<div class="nm-filterbar">'+option('year',choices.year,'Año')+(filters.year===otherYear?'<label>Ingrese el año<input class="form-control" type="text" inputmode="numeric" maxlength="4" data-nm-entered-year value="'+safe(enteredYear)+'" placeholder="Ej. 2018"></label>':'')+option('brand',choices.brand,'Marca')+option('model',choices.model,'Modelo')+ (choices.code.some(code=>code!=='Sin versión indicada')?option('code',choices.code,'Versión'):'')+option('km',choices.km,'Intervalo de mantenimiento',v=>v?Number(v).toLocaleString('es-EC')+' km':'Sin intervalo')+'<button class="btn secondary" data-nm-reset>Restablecer</button></div>';
  if(!part)return filterBar+'<p class="nm-footnote" role="status">Seleccione el año, la marca, el modelo y el kilometraje para abrir la proforma.</p>';
  return filterBar+'<div class="nm-context"><div><span class="nm-eyebrow">PLAN SELECCIONADO</span><h2>'+safe(part?.[3]||'Sin partidas')+'</h2><p>'+safe(filters.brand)+' · '+safe(filters.model)+' · '+(filters.code&&filters.code!=='Sin versión indicada'?safe(filters.code):'')+'</p></div>'+(plans.length>1?option('plan',plans.map(x=>x[0]),'Variante de plan',id=>plans.find(x=>x[0]===id)[1]):'<span class="nm-tag">'+planRows.length+' partidas en el plan</span>')+'</div>'+
  '<section id="nm-proforma-editor" aria-label="Rubros editables de la proforma"></section>'+
@@ -429,7 +432,7 @@ document.addEventListener('change',event=>{
  if(!key||!source)return;
  filters[key]=event.target.value;
  if(key==='year'&&filters.year!==otherYear)enteredYear='';
- resetLaterFilters(key);
+ if(key!=='year')resetLaterFilters(key);
  paint();
  if(key==='year'&&filters.year===otherYear)document.querySelector('[data-nm-entered-year]')?.focus();
 });
@@ -440,13 +443,12 @@ document.addEventListener('input',event=>{
  enteredYear=input.value.replace(/[^0-9]/g,'').slice(0,4);
  input.value=enteredYear;
  if(previousYear===selectedYear())return;
- resetLaterFilters('year');
  paint();
  document.querySelector('[data-nm-entered-year]')?.focus({preventScroll:true});
 });
 
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-nm-retry')){load();paint();}if(b.hasAttribute('data-nm-reset')){enteredYear='';filters={year:'',brand:'',model:'',code:'',km:'',plan:'',type:'',search:''};paint();}if(b.hasAttribute('data-nm-export')&&source){const rows=selection().rows,t=totals(rows);const cell=v=>'"'+text(v).replace(/^[=+@\t\r-]/,"'"+text(v)[0]).replace(/"/g,'""')+'"';const output=(importedCatalog?[encabezadosMatriz,...rows.map(datosMatriz)]:[['Marca','Modelo','Código modelo','Plan','KM','Ítem','Descripción','Cantidad / horas','Tipo','Subtotal USD'],...rows.map(r=>[r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],num(r[8])===1?'Mano de obra':'Repuesto / insumo',num(r[12]).toFixed(2)]),['Subtotal','','','','','','','','',t.subtotal.toFixed(2)],['Adicional referencia 15%','','','','','','','','',t.extra.toFixed(2)],['Total referencia','','','','','','','','',t.total.toFixed(2)]]).map(r=>r.map(cell).join(';')).join('\r\n');const blob=new Blob(['\ufeff'+output],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='plan-mantenimiento-'+filters.code.replace(/[^a-z0-9]/gi,'-')+'-'+filters.km+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}});
-window.EnjoyMaintenance={render};
+window.EnjoyMaintenance={render,yearsForLabel};
 // Exported pure calculations allow data integrity tests without a browser.
 if(typeof module!=='undefined')module.exports={totals,visibleRows,selection,setSource:s=>{source=s;referenceSource=s;},setFilters:f=>{filters={...filters,...f};}};
 })();

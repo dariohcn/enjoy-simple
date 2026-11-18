@@ -312,6 +312,77 @@ const planLookupText=value=>String(value??'').normalize('NFD').replace(/[\u0300-
 function planLookupKey(value){
  return planLookupText(value).replace(/[^a-z0-9]/g,'');
 }
+const vehicleCatalogCache=new Map();
+function catalogRequest(action,payload={}){
+ const key=JSON.stringify([session?.email,action,payload.vehicle_type,payload.region,payload.brand]);
+ const now=Date.now(),cached=vehicleCatalogCache.get(key);
+ if(cached&&cached.expires>now)return cached.request;
+ const request=api(action,payload).catch(error=>{
+  if(vehicleCatalogCache.get(key)?.request===request)vehicleCatalogCache.delete(key);
+  throw error;
+ });
+ if(vehicleCatalogCache.size>=12)vehicleCatalogCache.delete(vehicleCatalogCache.keys().next().value);
+ vehicleCatalogCache.set(key,{request,expires:now+300000});
+ return request;
+}
+function readVehicleCatalog({vehicle_type,region,brand}){
+ return catalogRequest('vehicle-catalog-read',{vehicle_type,region,brand});
+}
+function wireVehicleFields(form,vehicles){
+ const {brand,model,year}=form.elements;
+ const status=form.querySelector('[data-vehicle-catalog-status]');
+ const key=planLookupKey;
+ let index,rows=[],activeBrand='',sequence=0;
+ function options(input,values,descending=false){
+  const list=form.querySelector('#'+input.getAttribute('list'));
+  const distinct=new Map();
+  for(const value of values){
+   const name=String(value??'').trim(),normalized=key(name);
+   if(normalized&&!distinct.has(normalized))distinct.set(normalized,name);
+  }
+  const sorted=[...distinct.values()].sort((a,b)=>(descending?-1:1)*a.localeCompare(b,'es',{numeric:true}));
+  list.replaceChildren(...sorted.map(value=>new Option(value,value)));
+ }
+ function refreshFields(){
+  const saved=vehicles.filter(vehicle=>key(vehicle.brand)===key(brand.value));
+  options(model,[...rows.map(row=>row.modelo),...saved.map(vehicle=>vehicle.model)]);
+  const matching=rows.filter(row=>key(row.modelo)===key(model.value));
+  const years=matching.flatMap(row=>window.EnjoyMaintenance.yearsForLabel(String(row.anio_etiqueta||row.anio||'')));
+  options(year,[...years,...saved.filter(vehicle=>key(vehicle.model)===key(model.value)).map(vehicle=>vehicle.year)]
+   .filter(value=>/^\d{4}$/.test(String(value))),true);
+ }
+ async function loadModels(){
+  const name=key(brand.value);
+  if(name===activeBrand)return;
+  activeBrand=name;
+  const token=++sequence;
+  rows=[];refreshFields();
+  const entries=(index?.imports||[]).filter(entry=>key(entry.brand)===name);
+  if(!entries.length){status.textContent='';return;}
+  status.textContent='Cargando modelos y años…';
+  const results=await Promise.allSettled(entries.map(readVehicleCatalog));
+  if(token!==sequence||!form.isConnected)return;
+  rows=results.flatMap(result=>result.status==='fulfilled'?result.value:[]);
+  refreshFields();
+  status.textContent=results.some(result=>result.status==='rejected')?'Algunas opciones del catálogo no se pudieron cargar. Puede ingresar los datos del vehículo.':'';
+  if(!rows.length&&results.every(result=>result.status==='rejected'))activeBrand='';
+ }
+ options(brand,vehicles.map(vehicle=>vehicle.brand));
+ brand.addEventListener('input',()=>{if(index)loadModels();else refreshFields();});
+ brand.addEventListener('change',()=>{if(index)loadModels();});
+ model.addEventListener('input',refreshFields);
+ model.addEventListener('change',refreshFields);
+ refreshFields();
+ status.textContent='Consultando marcas…';
+ catalogRequest('vehicle-catalog-index').then(result=>{
+  if(!form.isConnected)return;
+  index=result;
+  options(brand,[...index.brands.map(entry=>entry.name),...vehicles.map(vehicle=>vehicle.brand)]);
+  status.textContent='';
+  loadModels();
+ }).catch(()=>{if(form.isConnected)status.textContent='No se pudieron consultar las marcas. Puede ingresar los datos del vehículo.';});
+}
+window.EnjoyVehicleCatalog={wireVehicleFields};
 function planView(){
  return '<section id="vehicle-plan-scope" class="card integration-pad"><form class="fields">'+(session?.role==='owner'?'<label>Cliente<input class="form-control" name="customer" type="search" autocomplete="off" placeholder="Nombre o iniciales"></label><label>Vehículo registrado<select class="form-select" name="registered_vehicle" disabled><option value="">Seleccione un cliente</option></select></label><div class="full nm-client-matches" data-plan-client-matches hidden><ul aria-label="Clientes que coinciden"></ul></div>':'')+scopeFields+
  '<label>Marca del catálogo<select name="brand" class="form-select" disabled><option value="">Seleccione el tipo</option></select></label></form>'+
@@ -334,7 +405,6 @@ function wirePlan(options){
  host.dataset.wired='true';
  const form=host.querySelector('form'),status=host.querySelector('[data-scope-status]'),brand=form.elements.brand;
  let index,sequence=0,selectedClient=null,selectedVehicle=null;
- const cachedCatalogs=new Map();
  function scopes(){
   const scope=currentScope(form);
   return (index?.imports||[]).filter(row=>row.vehicle_type===scope.vehicle_type&&row.region===scope.region);
@@ -356,9 +426,7 @@ function wirePlan(options){
   const scope=currentScope(form);
   status.textContent='Cargando catálogo…';
   try{
-   const key=JSON.stringify([scope.vehicle_type,scope.region,name]);
-   const items=cachedCatalogs.get(key)||await api('vehicle-catalog-read',{...scope,brand:name});
-   cachedCatalogs.set(key,items);
+   const items=await readVehicleCatalog({...scope,brand:name});
    if(token!==sequence||!host.isConnected)return;
    if(!items.length){status.textContent='No se encontraron partidas.';return;}
    const logo=logoUrl(index.brands.find(b=>b.name===name)?.logo_url);
@@ -425,7 +493,7 @@ function wirePlan(options){
    else if(brand.value)loadBrand();
   });
  }
- api('vehicle-catalog-index').then(result=>{
+ catalogRequest('vehicle-catalog-index').then(result=>{
   index=result;
   if(!host.isConnected)return;
   if(selectedVehicle)selectCatalogForVehicle();
