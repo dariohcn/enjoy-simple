@@ -148,3 +148,14 @@ body.enjoy-refined:not(.logged-out) #contenido .dashboard-detail-table :is(td,th
 .unit-inspector-top { display: flex; flex-wrap: wrap; gap: 12px; }
 .unit-inspector .unit-title :is(h2,p) { color: #fff; }
 .reception-time { white-space: nowrap; }
+
+#contenido .unit-inspector .unit-inspector-top .text-button,
+#contenido .unit-inspector .unit-title h2,
+#contenido .unit-inspector .unit-title p,
+#contenido .unit-inspector .unit-title p span {
+ color: #fff !important;
+}
+#contenido .unit-inspector .unit-inspector-top .text-button:hover {
+ color: #fff !important;
+ text-decoration: underline;
+}
