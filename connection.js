@@ -16,12 +16,12 @@ window.EnjoyConnection = (() => {
     const c=settings(),response=await fetch(c.endpoint+path,{method,headers:{apikey:c.publicKey,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
     const result=await response.json().catch(()=>({}));
     if(!response.ok){
-      let message=result.message||result.msg||result.error_description||'';
+      let message=result.message||result.msg||result.error_description||(typeof result.error==='string'?result.error:'');
       if(path.startsWith('/auth/'))message=response.status===429?'Demasiados intentos. Espere unos minutos.':/confirm/i.test(message)?'Confirme su correo electrónico antes de ingresar.':'No se pudo validar la cuenta. Revise el correo y la contraseña.';
       else if(result.code==='42501'&&/^Esta IP no está autorizada\./.test(message)){
         message='La dirección IP de su conexión no está autorizada. Solicite al administrador que la registre para poder ingresar.';
       }
-      else if(!/^(Su |El |La |Los |No |Debe |Complete |Ingrese |Registro|Revise |Servicio|Vehículo|Fecha|Permiso|Estado|Identificador|Operación|Seleccione)/.test(message))message='No se pudo completar la operación.';
+      else if(!/^(Su |El |La |Los |No |Debe |Complete |Ingrese |Registro|Revise |Servicio|Vehículo|Fecha|Permiso|Estado|Identificador|Operación|Seleccione|WhatsApp|Conecte|Vuelva|Espere|Actualice|Este|Algunas)/.test(message))message='No se pudo completar la operación.';
       const error=Error(message);error.status=response.status;throw error;
     }
     return result;
@@ -34,7 +34,7 @@ window.EnjoyConnection = (() => {
     }
     return tokens.access_token;
   }
-  async function rpc(action,payload={}){const token=await access();if(!token)throw Error('Debe iniciar sesión.');return request('/rest/v1/rpc/'+(action==='storage-usage'?'enjoy_storage_usage':action.startsWith('appointment-details-')?'enjoy_appointment_details':action.startsWith('blog-')?'enjoy_blog':action.startsWith('chat-')?'enjoy_chat':action.startsWith('order-')?'enjoy_orders':'enjoy_api'),{action,payload},token)}
+  async function rpc(action,payload={}){const token=await access();if(!token)throw Error('Debe iniciar sesión.');return request('/rest/v1/rpc/'+(action.startsWith('whatsapp-')?'enjoy_whatsapp':action==='storage-usage'?'enjoy_storage_usage':action.startsWith('appointment-details-')?'enjoy_appointment_details':action.startsWith('blog-')?'enjoy_blog':action.startsWith('chat-')?'enjoy_chat':action.startsWith('order-')?'enjoy_orders':'enjoy_api'),{action,payload},token)}
   async function api(path,body){
     if(path==='register'){
       const b=body||{};
@@ -53,6 +53,12 @@ window.EnjoyConnection = (() => {
       return {ok:true};
     }
     if(path==='session'&&!tokens)return null;
+    if(['whatsapp-readiness','whatsapp-complete','whatsapp-refresh'].includes(path)){
+      const token=await access();
+      if(!token)throw Error('Debe iniciar sesión.');
+      const attempt=path==='whatsapp-refresh'?await rpc('whatsapp-begin'):null;
+      return request('/functions/v1/workshop-whatsapp',{...(body||{}),action:path.slice(9),...(attempt?{attemptId:attempt.attemptId}:{})},token);
+    }
     return rpc(path,body||{});
   }
   return Object.freeze({api});

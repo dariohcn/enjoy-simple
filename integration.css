@@ -99,3 +99,17 @@ body.platform-adapted #contenido .catalog-matrix table{min-width:720px}
 .registration-vehicles{list-style:none;padding:0;margin:0}
 .registration-vehicles li+li{border-top:1px solid #e2eaf1;margin-top:8px;padding-top:8px}
 .registration-vehicles .actions{margin-top:5px}
+
+/* WhatsApp settings follow the shared responsive form layout. */
+#workshop-whatsapp { margin-block-start: 24px; min-width: 0; }
+#workshop-whatsapp .fields { padding: 0; margin-block: 20px; }
+#workshop-whatsapp .fields > div { align-self: end; }
+#workshop-whatsapp .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 16px; }
+#workshop-whatsapp .actions .btn { white-space: normal; }
+#workshop-whatsapp .table-wrap { overflow-x: auto; max-width: 100%; }
+#workshop-whatsapp [data-wa-note]:empty { display: none; }
+@media(max-width:640px) {
+ #workshop-whatsapp .fields { grid-template-columns: minmax(0,1fr); }
+ #workshop-whatsapp .actions .btn { flex: 1 1 100%; }
+ #workshop-whatsapp input { font-size: 16px; }
+}
